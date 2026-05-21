@@ -1,9 +1,9 @@
 const express = require('express')
 const { AccessToken } = require('livekit-server-sdk')
-const { PrismaClient } = require('../generated/prisma')
+const prisma = require('../db')
 
 const router = express.Router()
-const prisma = new PrismaClient()
+
 
 router.post('/room/token', async (req, res) => {
     try {

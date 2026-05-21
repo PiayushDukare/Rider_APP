@@ -2,7 +2,7 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+;
 
 // POST /api/rides/sync
 // Receives compressed ride JSON and saves to the database
