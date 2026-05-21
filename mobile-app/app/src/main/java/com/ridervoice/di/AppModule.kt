@@ -18,17 +18,30 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideOkHttpClient(authRepository: AuthRepository): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY
             })
             .addInterceptor { chain ->
-                // Attach API secret to every request
-                val request = chain.request().newBuilder()
-                    .addHeader("Authorization", "Bearer ${Constants.API_SECRET}")
-                    .build()
-                chain.proceed(request)
+                // Blocking call in interceptor to fetch Firebase token
+                var token: String? = null
+                val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+                if (user != null) {
+                    try {
+                        val task = com.google.android.gms.tasks.Tasks.await(user.getIdToken(false))
+                        token = task.token
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+
+                val requestBuilder = chain.request().newBuilder()
+                if (token != null) {
+                    requestBuilder.addHeader("Authorization", "Bearer $token")
+                }
+                
+                chain.proceed(requestBuilder.build())
             }
             .build()
     }
@@ -47,5 +60,21 @@ object AppModule {
     @Singleton
     fun provideApiService(retrofit: Retrofit): ApiService {
         return retrofit.create(ApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideRideDatabase(@dagger.hilt.android.qualifiers.ApplicationContext context: android.content.Context): com.ridervoice.data.local.RideDatabase {
+        return androidx.room.Room.databaseBuilder(
+            context,
+            com.ridervoice.data.local.RideDatabase::class.java,
+            "ridervoice_flight_recorder.db"
+        ).fallbackToDestructiveMigration().build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRideDao(database: com.ridervoice.data.local.RideDatabase): com.ridervoice.data.local.RideDao {
+        return database.rideDao()
     }
 }

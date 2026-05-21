@@ -1,8 +1,10 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
-    id 'com.google.dagger.hilt.android'
     id 'kotlin-kapt'
+    id 'com.google.dagger.hilt.android'
+    id 'com.google.gms.google-services'
+    id 'com.google.firebase.crashlytics'
 }
 
 android {
@@ -43,6 +45,11 @@ dependencies {
     implementation "androidx.compose.material3:material3:1.1.2"
     implementation "androidx.navigation:navigation-compose:2.7.6"
 
+    // Firebase Crashlytics (Telemetry & Telemetry)
+    implementation platform('com.google.firebase:firebase-bom:32.7.1')
+    implementation 'com.google.firebase:firebase-crashlytics'
+    implementation 'com.google.firebase:firebase-analytics'
+
     // Hilt
     implementation "com.google.dagger:hilt-android:2.48"
     kapt "com.google.dagger:hilt-compiler:2.48"
@@ -58,4 +65,26 @@ dependencies {
 
     // Encrypted SharedPreferences
     implementation "androidx.security:security-crypto:1.1.0-alpha06"
+    
+    // Firebase BoM & Auth
+    implementation platform('com.google.firebase:firebase-bom:32.7.2')
+    implementation 'com.google.firebase:firebase-auth-ktx'
+    implementation 'com.google.firebase:firebase-messaging-ktx'
+    implementation 'com.google.android.gms:play-services-auth:21.0.0'
+
+    // Mapbox
+    implementation "com.mapbox.maps:android:11.2.0"
+    implementation "com.mapbox.extension:maps-compose:11.2.0"
+
+    // Location
+    implementation "com.google.android.gms:play-services-location:21.1.0"
+    
+    // Media & AVRCP
+    implementation "androidx.media:media:1.7.0"
+    
+    // Room Database (Flight Recorder)
+    def room_version = "2.6.1"
+    implementation "androidx.room:room-runtime:$room_version"
+    implementation "androidx.room:room-ktx:$room_version"
+    kapt "androidx.room:room-compiler:$room_version"
 }

@@ -15,13 +15,34 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import com.ridervoice.audio.HardwarePTTManager
+import com.ridervoice.models.RiderLocation
+import com.ridervoice.services.LocationService
+import com.ridervoice.services.RideRecorder
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+
+import com.ridervoice.network.NetworkHealth
+import com.ridervoice.network.NetworkResilienceManager
+
+import com.ridervoice.services.ThermalManager
+import com.ridervoice.services.ServiceWatchdog
+
 @HiltViewModel
 class RoomViewModel @Inject constructor(
     private val apiService: ApiService,
-    private val liveKitManager: LiveKitManager
+    private val liveKitManager: LiveKitManager,
+    private val locationService: LocationService,
+    val hardwarePTTManager: HardwarePTTManager,
+    val networkResilienceManager: NetworkResilienceManager,
+    private val rideRecorder: RideRecorder,
+    private val thermalManager: ThermalManager,
+    private val serviceWatchdog: ServiceWatchdog
 ) : ViewModel() {
 
     val connectionState: StateFlow<ConnectionState> = liveKitManager.connectionState
+    val remoteLocations: StateFlow<Map<String, RiderLocation>> = liveKitManager.remoteLocations
+    val networkHealth: StateFlow<NetworkHealth> = networkResilienceManager.networkHealth
 
     private val _participants = MutableStateFlow<List<Participant>>(emptyList())
     val participants: StateFlow<List<Participant>> = _participants
@@ -32,16 +53,94 @@ class RoomViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    private var currentUserName = ""
+
     init {
-        // Sync participant list from LiveKit events
+        // Sync participant list with Ghost Rider logic
         liveKitManager.participants
-            .onEach { identities ->
-                _participants.value = identities.map { Participant(identity = it) }
+            .onEach { activeIdentities ->
+                val currentParticipants = _participants.value.toMutableList()
+                val now = System.currentTimeMillis()
+
+                // Mark disconnected as Ghosts
+                currentParticipants.forEachIndexed { index, p ->
+                    if (!activeIdentities.contains(p.identity)) {
+                        if (!p.isGhost) {
+                            currentParticipants[index] = p.copy(isGhost = true, disconnectedAt = now)
+                        }
+                    }
+                }
+
+                // Add newly connected
+                activeIdentities.forEach { identity ->
+                    val existingIdx = currentParticipants.indexOfFirst { it.identity == identity }
+                    if (existingIdx >= 0) {
+                        // Reconnected!
+                        currentParticipants[existingIdx] = currentParticipants[existingIdx].copy(isGhost = false, disconnectedAt = null)
+                    } else {
+                        currentParticipants.add(Participant(identity = identity))
+                    }
+                }
+
+                _participants.value = currentParticipants.toList()
             }
             .launchIn(viewModelScope)
+
+        // Broadcast local location when it updates
+        locationService.currentLocation
+            .filterNotNull()
+            .onEach { loc ->
+                if (liveKitManager.connectionState.value == ConnectionState.CONNECTED) {
+                    liveKitManager.publishLocation(
+                        RiderLocation(
+                            riderId = currentUserName,
+                            lat = loc.latitude,
+                            lng = loc.longitude,
+                            speed = loc.speed,
+                            heading = loc.bearing,
+                            timestamp = System.currentTimeMillis()
+                        )
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
+
+        // Throttle Telemetry on Weak Signal
+        networkResilienceManager.networkHealth
+            .onEach { health ->
+                locationService.setNetworkDegraded(health == NetworkHealth.DEGRADED)
+            }
+            .launchIn(viewModelScope)
+
+        // Wire PTT to LiveKit Mic
+        hardwarePTTManager.onMicToggleRequest = { isMicOpen ->
+            _muted.value = !isMicOpen
+            liveKitManager.setMicrophoneEnabled(isMicOpen)
+        }
+        
+        // Ghost Rider Purge Loop
+        viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(60000) // check every minute
+                val now = System.currentTimeMillis()
+                _participants.value = _participants.value.filter {
+                    if (it.isGhost && it.disconnectedAt != null) {
+                        (now - it.disconnectedAt) < (15 * 60 * 1000) // Keep for 15 mins max
+                    } else {
+                        true
+                    }
+                }
+            }
+        }
     }
 
     fun joinRoom(roomName: String, userName: String) {
+        currentUserName = userName
+        locationService.startTracking()
+        hardwarePTTManager.activateSession()
+        rideRecorder.startRecording(roomName)
+        thermalManager.startMonitoring(viewModelScope)
+        serviceWatchdog.startMonitoring(viewModelScope)
         viewModelScope.launch {
             try {
                 _error.value = null
@@ -76,11 +175,21 @@ class RoomViewModel @Inject constructor(
     }
 
     fun leaveRoom() {
+        locationService.stopTracking()
+        hardwarePTTManager.deactivateSession()
+        rideRecorder.stopRecording()
+        thermalManager.stopMonitoring()
+        serviceWatchdog.stopMonitoring()
         liveKitManager.disconnect()
     }
 
     override fun onCleared() {
         super.onCleared()
+        locationService.stopTracking()
+        hardwarePTTManager.deactivateSession()
+        rideRecorder.stopRecording()
+        thermalManager.stopMonitoring()
+        serviceWatchdog.stopMonitoring()
         liveKitManager.disconnect()
     }
 }

@@ -1,0 +1,39 @@
+package com.ridervoice.data.local
+
+import androidx.room.*
+import com.ridervoice.data.local.entities.ConvoyEventEntity
+import com.ridervoice.data.local.entities.RawWaypointEntity
+import com.ridervoice.data.local.entities.RideSessionEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface RideDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSession(session: RideSessionEntity)
+
+    @Update
+    suspend fun updateSession(session: RideSessionEntity)
+
+    @Insert
+    suspend fun insertWaypoint(waypoint: RawWaypointEntity)
+
+    @Insert
+    suspend fun insertEvent(event: ConvoyEventEntity)
+
+    @Query("SELECT * FROM ride_sessions WHERE isSynced = 0")
+    suspend fun getUnsyncedSessions(): List<RideSessionEntity>
+
+    @Query("SELECT * FROM raw_waypoints WHERE sessionId = :sessionId ORDER BY timestamp ASC")
+    suspend fun getWaypointsForSession(sessionId: String): List<RawWaypointEntity>
+
+    @Query("SELECT * FROM convoy_events WHERE sessionId = :sessionId ORDER BY timestamp ASC")
+    suspend fun getEventsForSession(sessionId: String): List<ConvoyEventEntity>
+    
+    @Query("SELECT * FROM ride_sessions ORDER BY startTime DESC")
+    fun getAllSessions(): Flow<List<RideSessionEntity>>
+}
+
+@Database(entities = [RideSessionEntity::class, RawWaypointEntity::class, ConvoyEventEntity::class], version = 1, exportSchema = false)
+abstract class RideDatabase : RoomDatabase() {
+    abstract fun rideDao(): RideDao
+}

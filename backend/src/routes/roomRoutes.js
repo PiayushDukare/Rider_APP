@@ -1,34 +1,59 @@
 const express = require('express')
+const { AccessToken } = require('livekit-server-sdk')
+const { PrismaClient } = require('../generated/prisma')
+
 const router = express.Router()
-const { createToken } = require('../services/tokenService')
+const prisma = new PrismaClient()
 
-router.get('/token', async (req, res) => {
-
+router.post('/room/token', async (req, res) => {
     try {
-        const { room, user } = req.query
+        const { roomName } = req.body
+        const user = req.user // Provided by authMiddleware
 
-        // Validate required params
-        if (!room || !user) {
-            return res.status(400).json({
-                error: 'Missing required query params: room and user'
-            })
+        if (!roomName) {
+            return res.status(400).json({ error: 'Missing roomName in request body' })
         }
 
-        if (room.trim() === '' || user.trim() === '') {
-            return res.status(400).json({
-                error: 'room and user must not be empty'
-            })
-        }
-
-        const token = await createToken(room.trim(), user.trim())
-
-        res.json({
-            roomName: room.trim(),
-            token
+        // Sync user to Supabase
+        await prisma.user.upsert({
+            where: { id: user.uid },
+            update: { email: user.email },
+            create: {
+                id: user.uid,
+                email: user.email || 'unknown@rider.app',
+                name: user.name || 'Rider'
+            }
         })
+
+        // Upsert the Room in Supabase
+        await prisma.room.upsert({
+            where: { name: roomName },
+            update: {},
+            create: {
+                name: roomName,
+                ownerId: user.uid
+            }
+        })
+
+        // Generate LiveKit Token
+        const participantIdentity = user.uid
+        const at = new AccessToken(
+            process.env.LIVEKIT_API_KEY,
+            process.env.LIVEKIT_API_SECRET,
+            {
+                identity: participantIdentity,
+                name: user.name || 'Rider'
+            }
+        )
+
+        at.addGrant({ roomJoin: true, room: roomName })
+        const token = await at.toJwt()
+
+        res.json({ token, roomName })
+
     } catch (error) {
-        console.error('Token generation error:', error)
-        res.status(500).json({ error: error.message })
+        console.error('Error generating token:', error)
+        res.status(500).json({ error: 'Failed to generate token' })
     }
 })
 
