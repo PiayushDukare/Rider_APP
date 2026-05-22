@@ -18,10 +18,18 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
 import com.ridervoice.ui.theme.*
+import com.ridervoice.ui.viewmodels.RideStatsViewModel
 
 @Composable
-fun RideStatsScreen(onBackClick: () -> Unit) {
+fun RideStatsScreen(
+    viewModel: RideStatsViewModel = hiltViewModel(),
+    onBackClick: () -> Unit
+) {
+    val uiState = viewModel.uiState.collectAsState().value
     var selectedTab by remember { mutableStateOf("OVERVIEW") }
     val tabs = listOf("OVERVIEW", "SPEED", "ELEVATION")
 
@@ -93,14 +101,14 @@ fun RideStatsScreen(onBackClick: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    StatItem(label = "TOTAL DISTANCE", value = "124.7", unit = "km")
+                    StatItem(label = "TOTAL DISTANCE", value = uiState.totalDistance, unit = "km")
                     Spacer(modifier = Modifier.height(24.dp))
-                    StatItem(label = "AVG SPEED", value = "68", unit = "km/h")
+                    StatItem(label = "AVG SPEED", value = uiState.avgSpeed, unit = "km/h")
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    StatItem(label = "TOTAL TIME", value = "02:35:18", unit = "")
+                    StatItem(label = "TOTAL TIME", value = uiState.totalTime, unit = "")
                     Spacer(modifier = Modifier.height(24.dp))
-                    StatItem(label = "TOP SPEED", value = "142", unit = "km/h")
+                    StatItem(label = "TOP SPEED", value = uiState.topSpeed, unit = "km/h")
                 }
             }
 
@@ -159,25 +167,28 @@ fun RideStatsScreen(onBackClick: () -> Unit) {
                                 val path = Path().apply {
                                     val width = size.width
                                     val height = size.height
-                                    val points = listOf(
-                                        0f to height,
-                                        width * 0.2f to height * 0.4f,
-                                        width * 0.4f to height * 0.5f,
-                                        width * 0.6f to height * 0.2f,
-                                        width * 0.8f to height * 0.3f,
-                                        width to 0f
-                                    )
-                                    moveTo(points.first().first, points.first().second)
-                                    for (i in 1 until points.size) {
-                                        val p1 = points[i - 1]
-                                        val p2 = points[i]
-                                        // Simple cubic bezier for smooth curves
-                                        val cp1x = (p1.first + p2.first) / 2
-                                        cubicTo(
-                                            cp1x, p1.second,
-                                            cp1x, p2.second,
-                                            p2.first, p2.second
-                                        )
+                                    val points = uiState.speedDataPoints
+                                    if (points.isNotEmpty()) {
+                                        val maxSpeed = 160f // Based on y-axis max
+                                        
+                                        // Map the speed points to x,y coordinates
+                                        val mappedPoints = points.mapIndexed { index, speed ->
+                                            val x = (index.toFloat() / (points.size - 1)) * width
+                                            val y = height - ((speed / maxSpeed) * height)
+                                            x to y
+                                        }
+                                        
+                                        moveTo(mappedPoints.first().first, mappedPoints.first().second)
+                                        for (i in 1 until mappedPoints.size) {
+                                            val p1 = mappedPoints[i - 1]
+                                            val p2 = mappedPoints[i]
+                                            val cp1x = (p1.first + p2.first) / 2
+                                            cubicTo(
+                                                cp1x, p1.second,
+                                                cp1x, p2.second,
+                                                p2.first, p2.second
+                                            )
+                                        }
                                     }
                                 }
                                 drawPath(

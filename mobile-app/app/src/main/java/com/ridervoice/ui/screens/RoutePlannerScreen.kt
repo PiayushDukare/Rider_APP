@@ -21,12 +21,17 @@ import com.ridervoice.ui.theme.*
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
 import com.mapbox.geojson.Point
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
+import com.ridervoice.ui.viewmodels.RoutePlannerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RoutePlannerScreen(onBackClick: () -> Unit) {
-    var origin by remember { mutableStateOf("Your Location") }
-    var destination by remember { mutableStateOf("Lonavala, MH") }
+fun RoutePlannerScreen(
+    viewModel: RoutePlannerViewModel = hiltViewModel(),
+    onBackClick: () -> Unit
+) {
+    val uiState = viewModel.uiState.collectAsState().value
     var selectedPreference by remember { mutableStateOf("Scenic") }
     val preferences = listOf("Fastest", "Scenic", "Twisty", "Off-road")
 
@@ -59,8 +64,8 @@ fun RoutePlannerScreen(onBackClick: () -> Unit) {
         // Input Fields
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
             OutlinedTextField(
-                value = origin,
-                onValueChange = { origin = it },
+                value = uiState.origin,
+                onValueChange = { viewModel.updateOrigin(it) },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("Origin", color = TextSecondary) },
                 leadingIcon = { Icon(Icons.Default.MyLocation, contentDescription = "Origin", tint = ElectricCyan) },
@@ -74,8 +79,8 @@ fun RoutePlannerScreen(onBackClick: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
-                value = destination,
-                onValueChange = { destination = it },
+                value = uiState.destination,
+                onValueChange = { viewModel.updateDestination(it) },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("Destination", color = TextSecondary) },
                 leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = "Destination", tint = NeonOrange) },
@@ -156,7 +161,7 @@ fun RoutePlannerScreen(onBackClick: () -> Unit) {
                 .padding(24.dp)
         ) {
             Text(
-                text = "LONAVALA LOOP",
+                text = uiState.routeName,
                 color = Color.White,
                 style = MaterialTheme.typography.titleLarge
             )
@@ -166,15 +171,15 @@ fun RoutePlannerScreen(onBackClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text("123 km", color = Color.White, style = MaterialTheme.typography.titleLarge)
+                    Text("${uiState.distanceKm} km", color = Color.White, style = MaterialTheme.typography.titleLarge)
                     Text("DISTANCE", color = TextSecondary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
                 Column {
-                    Text("02:40", color = Color.White, style = MaterialTheme.typography.titleLarge)
+                    Text(uiState.duration, color = Color.White, style = MaterialTheme.typography.titleLarge)
                     Text("DURATION", color = TextSecondary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
                 Column {
-                    Text("1420 m", color = Color.White, style = MaterialTheme.typography.titleLarge)
+                    Text("${uiState.elevationGain} m", color = Color.White, style = MaterialTheme.typography.titleLarge)
                     Text("ELEV GAIN", color = TextSecondary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }

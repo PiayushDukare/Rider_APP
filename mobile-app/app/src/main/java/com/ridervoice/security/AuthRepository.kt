@@ -25,6 +25,16 @@ class AuthRepository @Inject constructor() {
         }
     }
 
+    suspend fun signInAnonymously(): Boolean {
+        return try {
+            auth.signInAnonymously().await()
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
     fun signOut() {
         auth.signOut()
     }

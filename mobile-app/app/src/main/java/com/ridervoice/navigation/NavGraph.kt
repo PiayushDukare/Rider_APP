@@ -31,12 +31,12 @@ fun NavGraph() {
         composable(Routes.LOGIN) {
             LoginScreen(
                 onGoogleSignInClick = { 
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
-                    }
+                    // To be implemented fully later with Google Identity Services
                 },
-                onPhoneOtpClick = { },
-                onGuestClick = {
+                onPhoneOtpClick = { 
+                    // To be implemented fully later with Firebase Phone Auth
+                },
+                onLoginSuccess = {
                     navController.navigate(Routes.HOME) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
@@ -66,7 +66,12 @@ fun NavGraph() {
 
         composable(Routes.SETTINGS) {
             SettingsScreen(
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.navigateUp() },
+                onSignOutSuccess = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) { inclusive = true } // Clear the entire backstack
+                    }
+                }
             )
         }
 

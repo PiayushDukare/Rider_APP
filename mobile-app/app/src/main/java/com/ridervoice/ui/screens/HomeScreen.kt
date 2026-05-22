@@ -22,16 +22,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
 import com.ridervoice.ui.theme.*
+import com.ridervoice.ui.viewmodels.HomeViewModel
 
 @Composable
 fun HomeScreen(
+    viewModel: HomeViewModel = hiltViewModel(),
     onStartRideClick: () -> Unit,
     onSquadClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onRoutePlannerClick: () -> Unit,
     onRideHistoryClick: () -> Unit
 ) {
+    val uiState = viewModel.uiState.collectAsState().value
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -83,14 +89,14 @@ fun HomeScreen(
             ) {
                 Column {
                     Text(
-                        text = "No Active Ride",
+                        text = if (uiState.hasActiveRide) uiState.activeRideName else "No Active Ride",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleLarge
                     )
                     Text(
-                        text = "Start or join a ride to connect",
+                        text = uiState.activeRideSubtitle,
                         color = TextSecondary,
                         fontSize = 14.sp,
                         modifier = Modifier.padding(top = 4.dp),
@@ -145,16 +151,16 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 SystemStatusCard(
-                    title = "Cardo Packtalk",
-                    status = "Connected",
-                    color = SuccessGreen,
+                    title = uiState.deviceName,
+                    status = uiState.deviceStatus,
+                    color = if (uiState.isDeviceConnected) SuccessGreen else TextSecondary,
                     icon = Icons.Default.Headset,
                     modifier = Modifier.weight(1f)
                 )
                 SystemStatusCard(
                     title = "Network",
-                    status = "Strong",
-                    color = SuccessGreen,
+                    status = uiState.networkStatus,
+                    color = if (uiState.isNetworkStrong) SuccessGreen else NeonOrange,
                     icon = Icons.Default.NetworkCell,
                     modifier = Modifier.weight(1f)
                 )

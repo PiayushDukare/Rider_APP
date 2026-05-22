@@ -19,9 +19,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ridervoice.ui.theme.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
+import com.ridervoice.ui.viewmodels.AuthViewModel
+import com.ridervoice.ui.components.TacticalButton
 
 @Composable
-fun SettingsScreen(onBackClick: () -> Unit) {
+fun SettingsScreen(
+    viewModel: AuthViewModel = hiltViewModel(),
+    onBackClick: () -> Unit,
+    onSignOutSuccess: () -> Unit
+) {
+    val loginSuccess = viewModel.loginSuccess.collectAsState(initial = true).value
+    
+    LaunchedEffect(loginSuccess) {
+        if (!loginSuccess) {
+            onSignOutSuccess()
+        }
+    }
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -69,6 +84,18 @@ fun SettingsScreen(onBackClick: () -> Unit) {
                     SettingsSectionHeader("COMMUNICATION")
                     SettingsItemToggle("Open Mic", true)
                     SettingsItemValue("Reconnect", "Auto")
+                }
+                
+                item {
+                    Spacer(modifier = Modifier.height(32.dp))
+                    TacticalButton(
+                        text = "Sign Out",
+                        onClick = { viewModel.signOut() },
+                        isOutlined = true,
+                        color = Color(0xFF1D232B),
+                        textColor = NeonOrange,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
                 }
             }
         }

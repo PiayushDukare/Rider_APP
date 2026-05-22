@@ -12,15 +12,41 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.collectAsState
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.ridervoice.ui.components.TacticalButton
 import com.ridervoice.ui.theme.*
+import com.ridervoice.ui.viewmodels.AuthViewModel
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.remember
 
 @Composable
 fun LoginScreen(
+    viewModel: AuthViewModel = hiltViewModel(),
     onGoogleSignInClick: () -> Unit,
     onPhoneOtpClick: () -> Unit,
-    onGuestClick: () -> Unit
+    onLoginSuccess: () -> Unit
 ) {
+    val isLoading = viewModel.isLoading.collectAsState().value
+    val loginSuccess = viewModel.loginSuccess.collectAsState().value
+    val errorMessage = viewModel.errorMessage.collectAsState().value
+    
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(loginSuccess) {
+        if (loginSuccess) {
+            onLoginSuccess()
+        }
+    }
+    
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -86,8 +112,8 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(16.dp))
         
         TacticalButton(
-            text = "Continue as Guest",
-            onClick = onGuestClick,
+            text = if (isLoading) "Connecting..." else "Continue as Guest",
+            onClick = { if (!isLoading) viewModel.signInAnonymously() },
             isOutlined = true,
             color = Color(0xFF1D232B), // Very subtle outline
             textColor = TextSecondary
@@ -103,6 +129,11 @@ fun LoginScreen(
             textAlign = TextAlign.Center,
             lineHeight = 18.sp,
             style = MaterialTheme.typography.bodyLarge
+        )
+        
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
         )
     }
 }
