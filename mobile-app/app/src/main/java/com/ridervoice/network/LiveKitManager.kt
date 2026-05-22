@@ -58,6 +58,7 @@ class LiveKitManager @Inject constructor(
     }
 
     fun connect(url: String, token: String) {
+        if (_connectionState.value == ConnectionState.CONNECTED || _connectionState.value == ConnectionState.CONNECTING) return
         _connectionState.value = ConnectionState.CONNECTING
 
         // Configure hardware for voice communications
@@ -67,12 +68,6 @@ class LiveKitManager @Inject constructor(
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val audioOptions = LocalAudioTrackOptions(
-                    echoCancellation = true,
-                    noiseSuppression = true,
-                    autoGainControl = true
-                )
-
                 room = LiveKit.create(
                     appContext = context
                 )
@@ -133,7 +128,11 @@ class LiveKitManager @Inject constructor(
     }
 
     private fun updateParticipantList() {
-        val ids = room?.remoteParticipants?.keys?.map { it.value } ?: emptyList()
+        val map = room?.remoteParticipants?.values?.associate { p ->
+            val identity = p.identity?.value ?: p.sid.value
+            identity to (p.name ?: identity)
+        }
+        val ids = map?.keys?.toList() ?: emptyList()
         _participants.value = ids
     }
 
@@ -155,7 +154,7 @@ class LiveKitManager @Inject constructor(
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val jsonString = gson.toJson(location)
-                room?.localParticipant?.publishData(jsonString.toByteArray(Charsets.UTF_8))
+                room?.localParticipant?.publishData(jsonString.toByteArray(Charsets.UTF_8), reliability = io.livekit.android.room.track.DataPublishReliability.RELIABLE)
             } catch (e: Exception) {
                 Log.e("LiveKitManager", "Failed to publish telemetry", e)
             }

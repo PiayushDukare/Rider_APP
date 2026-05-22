@@ -1,6 +1,7 @@
 package com.ridervoice.ui.screens
 
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,16 +23,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.ridervoice.network.ConnectionState
 import com.ridervoice.services.VoiceForegroundService
 import com.ridervoice.state.RoomViewModel
 import com.ridervoice.ui.components.ParticipantCard
 import com.ridervoice.ui.theme.*
-
-import com.mapbox.geojson.Point
-import com.mapbox.maps.extension.compose.MapboxMap
-import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
-import com.mapbox.maps.extension.compose.annotation.generated.PointAnnotation
 
 @Composable
 fun RoomScreen(
@@ -43,15 +38,17 @@ fun RoomScreen(
     val context = LocalContext.current
     val participants by viewModel.participants.collectAsState()
     val muted by viewModel.muted.collectAsState()
-    val remoteLocations by viewModel.remoteLocations.collectAsState()
 
     var isVoiceChannelExpanded by remember { mutableStateOf(false) }
 
-    val mapViewportState = rememberMapViewportState {
-        setCameraOptions {
-            zoom(12.0)
-            pitch(45.0)
-        }
+    // Fix: Move checkSelfPermission to remember block
+    val hasLocation by remember {
+        mutableStateOf(
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
     }
 
     LaunchedEffect(roomName, userName) {
@@ -61,24 +58,36 @@ fun RoomScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize().background(GraphiteBase)) {
-        // Map Background
-        val hasLocation = androidx.core.content.ContextCompat.checkSelfPermission(
-            context,
-            android.Manifest.permission.ACCESS_FINE_LOCATION
-        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        
-        if (hasLocation) {
-            MapboxMap(
-                modifier = Modifier.fillMaxSize(),
-                mapViewportState = mapViewportState
+        // Tactical Architecture: Background no longer uses in-app map.
+        // Instead, we encourage Navigation Delegation to external apps.
+        Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Icon(Icons.Default.Navigation, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(64.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("TACTICAL CONVOY ACTIVE", color = Color.White, style = MaterialTheme.typography.titleLarge)
+            Text("Voice and telemetry are running in background.", color = TextSecondary)
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = {
+                    // Navigation Delegation Intent (example opens maps)
+                    val gmmIntentUri = Uri.parse("geo:0,0?q=")
+                    val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                    mapIntent.setPackage("com.google.android.apps.maps")
+                    if (mapIntent.resolveActivity(context.packageManager) != null) {
+                        context.startActivity(mapIntent)
+                    } else {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, gmmIntentUri))
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = ElectricCyan)
             ) {
-                remoteLocations.forEach { (_, location) ->
-                    PointAnnotation(point = Point.fromLngLat(location.lng, location.lat))
-                }
+                Text("LAUNCH NAVIGATION", color = Color.Black, fontWeight = FontWeight.Bold)
             }
-        } else {
-            Box(modifier = Modifier.fillMaxSize().background(DarkSlate), contentAlignment = Alignment.Center) {
-                Text("CONVOY MAP DISABLED", color = AlertRed, style = MaterialTheme.typography.titleLarge)
+        }
+
+        if (!hasLocation) {
+            Box(modifier = Modifier.fillMaxSize().background(Color(0x99000000)), contentAlignment = Alignment.Center) {
+                Text("LOCATION PERMISSION DENIED", color = AlertRed, style = MaterialTheme.typography.titleLarge)
             }
         }
 
@@ -108,23 +117,6 @@ fun RoomScreen(
                 Icon(Icons.Default.BatteryChargingFull, contentDescription = "Battery", tint = SuccessGreen)
                 Spacer(modifier = Modifier.width(4.dp))
                 Text("90%", color = SuccessGreen, fontWeight = FontWeight.Bold)
-            }
-        }
-
-        // Speed Limit Sign
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 24.dp)
-                .size(60.dp)
-                .clip(CircleShape)
-                .background(Color.White)
-                .border(4.dp, AlertRed, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("80", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 24.sp)
-                Text("km/h", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -227,7 +219,7 @@ fun RoomScreen(
                         Icon(Icons.Default.Warning, contentDescription = "SOS", tint = AlertRed)
                     }
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("SOS", color = AlertRed, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("LEAVE", color = AlertRed, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

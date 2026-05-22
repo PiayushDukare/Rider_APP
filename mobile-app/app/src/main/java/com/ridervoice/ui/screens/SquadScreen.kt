@@ -33,10 +33,11 @@ fun SquadScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
-    // We fetch data using a placeholder userId "test-user" for now,
-    // this would normally come from an AuthRepository or SessionManager.
     LaunchedEffect(Unit) {
-        viewModel.fetchData("test-user")
+        val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+        if (userId != null) {
+            viewModel.fetchData(userId)
+        }
     }
 
     Column(

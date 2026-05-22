@@ -1,9 +1,4 @@
-const admin = require('firebase-admin')
-
-// Initialize Firebase Admin (assuming default env vars or explicit init elsewhere)
-if (!admin.apps.length) {
-    admin.initializeApp()
-}
+const admin = require('../config/firebaseAdmin')
 
 module.exports = async (req, res, next) => {
     const authHeader = req.headers.authorization

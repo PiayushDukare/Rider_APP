@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "500579707845-7mhtgq8gp5lvc81nbaej5kndk77vilbs.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ridervoice",
+            "certificate_hash": "facd95eb5eaab88906774064a79f85187169583e"
+          }
+        },
+        {
           "client_id": "500579707845-8onk2brvdc3lmj2jhmnktk1h4pl3hh1a.apps.googleusercontent.com",
           "client_type": 3
         }

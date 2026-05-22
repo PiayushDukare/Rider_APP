@@ -35,7 +35,7 @@ class HardwarePTTManager @Inject constructor(
             mediaSession?.setCallback(object : MediaSessionCompat.Callback() {
                 override fun onMediaButtonEvent(mediaButtonEvent: Intent?): Boolean {
                     val keyEvent = mediaButtonEvent?.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT)
-                    if (keyEvent != null && keyEvent.keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
+                    if (keyEvent != null && (keyEvent.keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE || keyEvent.keyCode == KeyEvent.KEYCODE_HEADSETHOOK)) {
                         
                         // Debounce filtering
                         val now = System.currentTimeMillis()
@@ -62,6 +62,16 @@ class HardwarePTTManager @Inject constructor(
             .build()
         
         mediaSession?.setPlaybackState(state)
+
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val focusRequest = android.media.AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE).build()
+            audioManager.requestAudioFocus(focusRequest)
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+        }
+
         mediaSession?.isActive = true
         logDebug("MediaSession: ACTIVATED (Taking focus)")
     }

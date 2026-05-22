@@ -22,11 +22,12 @@ class NotificationService {
             console.log('FCM Dispatch:', response.successCount, 'successes');
             
             // Clean up invalid tokens
-            response.responses.forEach(async (res, idx) => {
-                if (!res.success && res.error.code === 'messaging/registration-token-not-registered') {
+            const cleanupTasks = response.responses.map(async (res, idx) => {
+                if (!res.success && res.error?.code === 'messaging/registration-token-not-registered') {
                     await prisma.deviceToken.delete({ where: { token: messages[idx].token } });
                 }
             });
+            await Promise.all(cleanupTasks);
         } catch (error) {
             console.error('FCM Send Error:', error);
         }

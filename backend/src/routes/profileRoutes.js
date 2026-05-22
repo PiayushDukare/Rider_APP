@@ -10,6 +10,10 @@ router.post('/profile', async (req, res) => {
         return res.status(400).json({ error: "Missing Firebase UID (id)" });
     }
 
+    if (req.user && req.user.uid !== id) {
+        return res.status(403).json({ error: "Forbidden: Cannot modify another user's profile" });
+    }
+
     try {
         const user = await prisma.user.upsert({
             where: { id },
@@ -73,6 +77,10 @@ router.post('/fcm-token', async (req, res) => {
 
     if (!userId || !token) {
         return res.status(400).json({ error: "Missing userId or token" });
+    }
+
+    if (req.user && req.user.uid !== userId) {
+        return res.status(403).json({ error: "Forbidden: Cannot register token for another user" });
     }
 
     try {

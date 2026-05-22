@@ -20,14 +20,18 @@ class ServiceWatchdog @Inject constructor(
         if (watchdogJob != null) return
         
         watchdogJob = scope.launch(Dispatchers.IO) {
+            var hasConnectedOnce = false
             while (isActive) {
                 delay(10000) // Check every 10 seconds
                 
                 val connectionState = liveKitManager.connectionState.value
+                if (connectionState == com.ridervoice.network.ConnectionState.CONNECTED) {
+                    hasConnectedOnce = true
+                }
                 val isServiceRunning = locationService.isTracking.value // We use LocationService as proxy for foreground
                 
                 // Zombie Condition 1: Foreground is running, but LiveKit is definitively disconnected (not reconnecting)
-                if (isServiceRunning && connectionState == com.ridervoice.network.ConnectionState.DISCONNECTED) {
+                if (hasConnectedOnce && isServiceRunning && connectionState == com.ridervoice.network.ConnectionState.DISCONNECTED) {
                     Log.e("ServiceWatchdog", "Zombie State Detected: LiveKit dead but Foreground active. Self-Healing...")
                     locationService.stopTracking()
                     hardwarePTTManager.deactivateSession()

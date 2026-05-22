@@ -21,6 +21,8 @@ class ReconnectManager(
                     reconnectAction()
                     reconnectAttempts = 0
                     break
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     reconnectAttempts++
                     // Exponential backoff capped at 30s

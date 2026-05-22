@@ -50,6 +50,7 @@ class AudioFocusManager @Inject constructor(
     fun abandonFocus() {
         focusRequest?.let {
             audioManager.abandonAudioFocusRequest(it)
+            focusRequest = null
             Log.d("AudioFocusManager", "Audio Focus Abandoned")
         }
     }

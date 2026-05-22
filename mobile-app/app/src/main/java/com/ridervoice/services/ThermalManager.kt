@@ -40,7 +40,12 @@ class ThermalManager @Inject constructor(
 
         monitorJob = scope.launch(Dispatchers.IO) {
             while (isActive) {
-                val intent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+                val intent = androidx.core.content.ContextCompat.registerReceiver(
+                    context, 
+                    null, 
+                    IntentFilter(Intent.ACTION_BATTERY_CHANGED), 
+                    androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+                )
                 val temp = intent?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
                 val temperatureCelsius = temp / 10.0f
 

@@ -20,8 +20,8 @@ router.post('/room/token', async (req, res) => {
             update: { email: user.email },
             create: {
                 id: user.uid,
-                email: user.email || 'unknown@rider.app',
-                name: user.name || 'Rider'
+                email: user.email || null,
+                displayName: user.name || 'Rider'
             }
         })
 

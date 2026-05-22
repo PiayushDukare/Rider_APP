@@ -1,6 +1,8 @@
 package com.ridervoice.security
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.PhoneAuthCredential
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,5 +39,26 @@ class AuthRepository @Inject constructor() {
 
     fun signOut() {
         auth.signOut()
+    }
+
+    suspend fun signInWithGoogle(idToken: String): Boolean {
+        return try {
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            auth.signInWithCredential(credential).await()
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun signInWithPhoneAuthCredential(credential: PhoneAuthCredential): Boolean {
+        return try {
+            auth.signInWithCredential(credential).await()
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
     }
 }

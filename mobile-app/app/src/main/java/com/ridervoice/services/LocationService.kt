@@ -74,11 +74,13 @@ class LocationService @Inject constructor(
 
     @SuppressLint("MissingPermission")
     fun updatePollingInterval(intervalMs: Long) {
-        if (currentIntervalMs != intervalMs) {
-            currentIntervalMs = intervalMs
-            val request = createRequest(currentIntervalMs)
-            fusedLocationClient.removeLocationUpdates(locationCallback)
-            fusedLocationClient.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
+        synchronized(this) {
+            if (currentIntervalMs != intervalMs) {
+                currentIntervalMs = intervalMs
+                val request = createRequest(currentIntervalMs)
+                // requestLocationUpdates inherently replaces the old request for the same callback without needing an async remove step
+                fusedLocationClient.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
+            }
         }
     }
 
@@ -99,11 +101,12 @@ class LocationService @Inject constructor(
             newInterval = 10000L // Clamp max rate to 10s to save failing bandwidth for Voice
         }
 
-        if (newInterval != currentIntervalMs) {
-            currentIntervalMs = newInterval
-            val request = createRequest(currentIntervalMs)
-            fusedLocationClient.removeLocationUpdates(locationCallback)
-            fusedLocationClient.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
+        synchronized(this) {
+            if (newInterval != currentIntervalMs) {
+                currentIntervalMs = newInterval
+                val request = createRequest(currentIntervalMs)
+                fusedLocationClient.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
+            }
         }
     }
 

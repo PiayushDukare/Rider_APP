@@ -1,5 +1,5 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../db');
 
 const router = express.Router();
 ;
@@ -46,6 +46,21 @@ router.post('/sync', async (req, res) => {
     } catch (error) {
         console.error('Ride Sync Error:', error);
         res.status(500).json({ error: 'Internal server error during ride sync' });
+    }
+});
+
+// GET /api/rides/history
+router.get('/history', async (req, res) => {
+    try {
+        const userId = req.user.uid;
+        const rides = await prisma.rideSession.findMany({
+            where: { riderId: userId },
+            orderBy: { startTime: 'desc' }
+        });
+        res.json(rides);
+    } catch (error) {
+        console.error('Ride History Error:', error);
+        res.status(500).json({ error: 'Internal server error fetching history' });
     }
 });
 

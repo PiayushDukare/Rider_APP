@@ -24,19 +24,31 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
+import com.ridervoice.utils.OEMBatteryWarning
 import com.ridervoice.ui.theme.*
 import com.ridervoice.ui.viewmodels.HomeViewModel
 
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    onStartRideClick: () -> Unit,
+    onStartRideClick: (String) -> Unit,
     onSquadClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onRoutePlannerClick: () -> Unit,
     onRideHistoryClick: () -> Unit
 ) {
     val uiState = viewModel.uiState.collectAsState().value
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        if (OEMBatteryWarning.isAggressiveOEM()) {
+            val warning = OEMBatteryWarning.getBatteryOptimizationWarningText()
+            Toast.makeText(context, warning, Toast.LENGTH_LONG).show()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -84,7 +96,7 @@ fun HomeScreen(
                     .clip(RoundedCornerShape(16.dp))
                     .background(DarkSlate)
                     .border(1.dp, Gunmetal, RoundedCornerShape(16.dp))
-                    .clickable { onStartRideClick() }
+                    .clickable { onStartRideClick("CONVOY-" + (1000..9999).random()) }
                     .padding(24.dp)
             ) {
                 Column {
@@ -125,7 +137,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                item { QuickActionCard("START RIDE", Icons.Default.PlayArrow, NeonOrange) { onStartRideClick() } }
+                item { QuickActionCard("START RIDE", Icons.Default.PlayArrow, NeonOrange) { onStartRideClick("CONVOY-" + (1000..9999).random()) } }
                 item { QuickActionCard("JOIN RIDE", Icons.Default.GroupAdd, ElectricCyan) { onSquadClick() } }
                 item { QuickActionCard("ROUTE PLANNER", Icons.Default.Map, TextSecondary) { onRoutePlannerClick() } }
                 item { QuickActionCard("QUICK INTERCOM", Icons.Default.Mic, TextSecondary) { } }

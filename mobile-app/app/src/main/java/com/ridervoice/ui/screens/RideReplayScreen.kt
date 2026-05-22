@@ -13,11 +13,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mapbox.geojson.LineString
-import com.mapbox.geojson.Point
-import com.mapbox.maps.Style
-import com.mapbox.maps.extension.compose.MapboxMap
-import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
 import com.ridervoice.data.local.entities.ConvoyEventEntity
 import com.ridervoice.data.local.entities.RawWaypointEntity
 import com.ridervoice.ui.theme.DarkSlate
@@ -35,16 +30,6 @@ fun RideReplayScreen(
 ) {
     var timelineProgress by remember { mutableStateOf(0f) }
 
-    val mapViewportState = rememberMapViewportState {
-        if (waypoints.isNotEmpty()) {
-            setCameraOptions {
-                center(Point.fromLngLat(waypoints.first().lng, waypoints.first().lat))
-                zoom(13.0)
-                pitch(60.0) // Cinematic tilt
-            }
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -57,17 +42,10 @@ fun RideReplayScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).background(GraphiteBase)) {
-            // Map Area
-            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                MapboxMap(
-                    modifier = Modifier.fillMaxSize(),
-                    mapViewportState = mapViewportState
-                ) {
-                    // TODO: Draw LineString from compressed GeoJSON using Mapbox extensions
-                    // For now, if we had the Mapbox compose annotations plugin fully set up for Polylines,
-                    // we would use PolylineAnnotation(points = points) here.
-                }
-
+            // Map Area (Removed Mapbox dependencies for Navigation Delegation architecture)
+            Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text("REPLAY MAP DISABLED", color = TextSecondary, style = MaterialTheme.typography.titleLarge)
+                
                 // Overlay
                 Column(modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
                     Text("DISTANCE", color = TextSecondary, fontSize = 10.sp, fontWeight = FontWeight.Bold)

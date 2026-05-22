@@ -151,7 +151,7 @@ class VoiceForegroundService : Service() {
         expandedViews.setTextViewText(R.id.text_active_speaker_expanded, "Active Speaker: $currentActiveSpeaker")
 
         // Update Icons (Mute state)
-        val muteIcon = if (isMuted) android.R.drawable.ic_lock_silent_mode else android.R.drawable.ic_lock_silent_mode_off
+        val muteIcon = if (isMuted) android.R.drawable.ic_lock_silent_mode else android.R.drawable.ic_btn_speak_now
         collapsedViews.setImageViewResource(R.id.btn_mute, muteIcon)
         expandedViews.setImageViewResource(R.id.btn_mute_expanded, muteIcon)
 

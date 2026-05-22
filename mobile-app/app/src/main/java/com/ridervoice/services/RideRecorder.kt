@@ -36,7 +36,7 @@ class RideRecorder @Inject constructor(
     fun startRecording(roomName: String) {
         if (recordingJob != null) return
         
-        CoroutineScope(Dispatchers.IO).launch {
+        recordingJob = CoroutineScope(Dispatchers.IO).launch {
             val session = RideSessionEntity(
                 roomName = roomName,
                 startTime = System.currentTimeMillis()

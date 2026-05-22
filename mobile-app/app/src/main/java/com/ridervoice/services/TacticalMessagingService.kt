@@ -11,12 +11,33 @@ import com.ridervoice.R
 import com.ridervoice.ui.screens.EmergencyAlertActivity
 import com.ridervoice.ui.screens.RideInviteActivity
 
+import com.ridervoice.network.ApiService
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@AndroidEntryPoint
 class TacticalMessagingService : FirebaseMessagingService() {
+
+    @Inject
+    lateinit var apiService: ApiService
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("TacticalFCM", "New FCM Token: $token")
-        // TODO: Send to backend /api/users/fcm-token
+        // Send to backend /api/users/fcm-token
+        val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+        if (userId != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    apiService.updateFcmToken(com.ridervoice.models.FcmTokenRequest(userId, token))
+                } catch (e: Exception) {
+                    Log.e("TacticalFCM", "Failed to update token on backend", e)
+                }
+            }
+        }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {

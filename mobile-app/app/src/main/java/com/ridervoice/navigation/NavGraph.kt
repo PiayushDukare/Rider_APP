@@ -46,8 +46,7 @@ fun NavGraph() {
 
         composable(Routes.HOME) {
             HomeScreen(
-                onStartRideClick = {
-                    val roomName = "PUNE NIGHT RIDERS"
+                onStartRideClick = { roomName ->
                     val userName = FirebaseAuth.getInstance().currentUser?.displayName ?: "Rider"
                     navController.navigate(Routes.activeRideHudPath(roomName, userName))
                 },

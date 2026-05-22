@@ -17,6 +17,11 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
+    object AuthTokenCache {
+        var cachedToken: String? = null
+        var expiryTime: Long = 0
+    }
+
     @Provides
     @Singleton
     fun provideOkHttpClient(authRepository: AuthRepository): OkHttpClient {
@@ -29,11 +34,18 @@ object AppModule {
                 var token: String? = null
                 val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
                 if (user != null) {
-                    try {
-                        val task = com.google.android.gms.tasks.Tasks.await(user.getIdToken(false))
-                        token = task.token
-                    } catch (e: Exception) {
-                        e.printStackTrace()
+                    val now = System.currentTimeMillis()
+                    if (AuthTokenCache.cachedToken != null && AuthTokenCache.expiryTime > now) {
+                        token = AuthTokenCache.cachedToken
+                    } else {
+                        try {
+                            val task = com.google.android.gms.tasks.Tasks.await(user.getIdToken(false))
+                            token = task.token
+                            AuthTokenCache.cachedToken = token
+                            AuthTokenCache.expiryTime = now + 45 * 60 * 1000 // 45 mins
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 }
 

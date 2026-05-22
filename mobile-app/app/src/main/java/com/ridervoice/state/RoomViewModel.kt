@@ -146,7 +146,7 @@ class RoomViewModel @Inject constructor(
                 _error.value = null
 
                 // 1. Fetch token from backend
-                val response = apiService.getToken(roomName, userName)
+                val response = apiService.getRoomToken(com.ridervoice.models.RoomTokenRequest(roomName))
 
                 if (!response.isSuccessful || response.body() == null) {
                     _error.value = "Failed to get token: ${response.code()}"
@@ -175,21 +175,20 @@ class RoomViewModel @Inject constructor(
     }
 
     fun leaveRoom() {
-        locationService.stopTracking()
-        hardwarePTTManager.deactivateSession()
-        rideRecorder.stopRecording()
-        thermalManager.stopMonitoring()
-        serviceWatchdog.stopMonitoring()
+        cleanup()
         liveKitManager.disconnect()
     }
 
     override fun onCleared() {
         super.onCleared()
+        cleanup()
+    }
+
+    private fun cleanup() {
         locationService.stopTracking()
         hardwarePTTManager.deactivateSession()
         rideRecorder.stopRecording()
         thermalManager.stopMonitoring()
         serviceWatchdog.stopMonitoring()
-        liveKitManager.disconnect()
     }
 }
