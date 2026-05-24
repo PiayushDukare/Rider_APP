@@ -8,9 +8,11 @@ const getAdminApp = () => {
     return adminApp;
   }
 
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const stripQuotes = (val?: string) => val?.replace(/^["']|["']$/g, '');
+
+  const projectId = stripQuotes(process.env.FIREBASE_PROJECT_ID);
+  const clientEmail = stripQuotes(process.env.FIREBASE_CLIENT_EMAIL);
+  const privateKey = stripQuotes(process.env.FIREBASE_PRIVATE_KEY)?.replace(/\\n/g, "\n");
 
   if (!projectId || !clientEmail || !privateKey) {
     throw new Error("Missing Firebase Admin credentials in environment variables.");
