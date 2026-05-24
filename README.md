@@ -9,7 +9,7 @@ Rider Voice is a real-time communication system and mobile application tailored 
 - State Management: ViewModels with StateFlow
 - Dependency Injection: Dagger Hilt
 - Maps: Mapbox SDK
-- Authentication: Firebase Auth
+- Authentication: Firebase Auth 
 
 ## Core Features
 - Live Intercom Communication: Real-time 3-way voice communication via WebRTC.
