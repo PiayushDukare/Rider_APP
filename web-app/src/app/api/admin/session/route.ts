@@ -45,7 +45,10 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch (error) {
-    return NextResponse.json({ error: "Invalid Firebase token" }, { status: 401 });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: `Auth error: ${error?.message || "Unknown error"}` },
+      { status: 401 }
+    );
   }
 }
