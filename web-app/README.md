@@ -39,6 +39,8 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 The admin UI lives under `/admin` and uses Firebase Admin to protect routes.
 
+Deploy bump: 2026-05-24
+
 ### Vercel project settings
 1. Import this repo and set **Root Directory** to `web-app`.
 2. Framework preset: **Next.js**.
