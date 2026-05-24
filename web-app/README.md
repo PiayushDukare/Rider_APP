@@ -34,3 +34,30 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Admin console deployment (Vercel)
+
+The admin UI lives under `/admin` and uses Firebase Admin to protect routes.
+
+### Vercel project settings
+1. Import this repo and set **Root Directory** to `web-app`.
+2. Framework preset: **Next.js**.
+3. Build command: `next build` (default).
+4. Deploy.
+
+### Required environment variables
+Set these in Vercel Project Settings → Environment Variables:
+
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY` (paste with `\n` for line breaks)
+
+### Session cookie flow
+The admin layout expects a Firebase session cookie named `__session`.
+Create the cookie by sending an ID token to:
+
+- `POST /api/admin/session` with JSON `{ "idToken": "<firebase-id-token>" }`
+
+Clear the cookie with:
+
+- `POST /api/admin/logout`

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface RideDao {
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSession(session: RideSessionEntity)
 
@@ -20,6 +21,11 @@ interface RideDao {
     @Insert
     suspend fun insertEvent(event: ConvoyEventEntity)
 
+    // BUG FIX: RideRecorder.stopRecording() needs to fetch the session before
+    // updating it (Room requires the full entity for @Update). This query was missing.
+    @Query("SELECT * FROM ride_sessions WHERE id = :sessionId LIMIT 1")
+    suspend fun getSessionById(sessionId: String): RideSessionEntity?
+
     @Query("SELECT * FROM ride_sessions WHERE isSynced = 0")
     suspend fun getUnsyncedSessions(): List<RideSessionEntity>
 
@@ -28,12 +34,19 @@ interface RideDao {
 
     @Query("SELECT * FROM convoy_events WHERE sessionId = :sessionId ORDER BY timestamp ASC")
     suspend fun getEventsForSession(sessionId: String): List<ConvoyEventEntity>
-    
+
     @Query("SELECT * FROM ride_sessions ORDER BY startTime DESC")
     fun getAllSessions(): Flow<List<RideSessionEntity>>
+
+    @Query("DELETE FROM raw_waypoints WHERE sessionId = :sessionId")
+    suspend fun deleteWaypointsForSession(sessionId: String)
 }
 
-@Database(entities = [RideSessionEntity::class, RawWaypointEntity::class, ConvoyEventEntity::class], version = 1, exportSchema = false)
+@Database(
+    entities  = [RideSessionEntity::class, RawWaypointEntity::class, ConvoyEventEntity::class],
+    version   = 1,
+    exportSchema = false
+)
 abstract class RideDatabase : RoomDatabase() {
     abstract fun rideDao(): RideDao
 }

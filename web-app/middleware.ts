@@ -1,8 +1,22 @@
-import { type NextRequest } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from './utils/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
-  return await createClient(request)
+  const response = await createClient(request)
+  const { pathname } = request.nextUrl
+
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+    const hasSession = request.cookies.get('__session')?.value
+    const isAdmin = request.cookies.get('rv_admin')?.value === '1'
+
+    if (!hasSession || !isAdmin) {
+      const loginUrl = request.nextUrl.clone()
+      loginUrl.pathname = '/admin/login'
+      return NextResponse.redirect(loginUrl)
+    }
+  }
+
+  return response
 }
 
 export const config = {

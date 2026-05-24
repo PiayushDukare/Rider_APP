@@ -70,13 +70,12 @@ class VoiceForegroundService : Service() {
             }
         }
 
-        // Mocking an active speaker flow (in a real app, this comes from LiveKitManager)
+        // Use the real active speaker flow from LiveKitManager
         serviceScope.launch {
-            // Suppose liveKitManager.activeSpeaker is a StateFlow<String?>
-            // liveKitManager.activeSpeaker.collectLatest { speaker ->
-            //     currentActiveSpeaker = speaker ?: "Nobody"
-            //     debouncedUpdateNotification()
-            // }
+            liveKitManager.activeSpeaker.collectLatest { speaker ->
+                currentActiveSpeaker = speaker ?: "Nobody"
+                debouncedUpdateNotification()
+            }
         }
     }
 

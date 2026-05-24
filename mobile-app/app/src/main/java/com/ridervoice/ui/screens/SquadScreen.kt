@@ -10,11 +10,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.collectAsState
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.firebase.auth.FirebaseAuth
 import com.ridervoice.ui.theme.*
 import com.ridervoice.ui.viewmodels.SquadViewModel
 
@@ -32,11 +30,16 @@ fun SquadScreen(
     viewModel: SquadViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
-    LaunchedEffect(Unit) {
-        val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-        if (userId != null) {
-            viewModel.fetchData(userId)
+
+    // BUG FIX: was hardcoded to "test-user".
+    // Firebase currentUser can be null briefly after a cold start — handle that.
+    val currentUserId = remember {
+        FirebaseAuth.getInstance().currentUser?.uid
+    }
+
+    LaunchedEffect(currentUserId) {
+        if (currentUserId != null) {
+            viewModel.fetchData(currentUserId)
         }
     }
 
@@ -57,23 +60,22 @@ fun SquadScreen(
                     Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back", tint = Color.White)
                 }
                 Column {
-                Text(
-                    text = "YOUR SQUAD",
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.sp
-                )
-                Text(
-                    text = "MUTUAL TRUSTED RIDERS",
-                    color = TextSecondary,
-                    fontSize = 12.sp,
-                    letterSpacing = 1.sp
-                )
+                    Text(
+                        text = "YOUR SQUAD",
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = "MUTUAL TRUSTED RIDERS",
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        letterSpacing = 1.sp
+                    )
+                }
             }
-            }
-            
-            // Add Friend / QR Code Button
+
             IconButton(
                 onClick = { /* Open Add Friend Modal */ },
                 modifier = Modifier
@@ -90,7 +92,6 @@ fun SquadScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Search Bar for Handles
         OutlinedTextField(
             value = "",
             onValueChange = {},
@@ -107,17 +108,34 @@ fun SquadScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        if (uiState.isLoading) {
-            CircularProgressIndicator(color = NeonOrange, modifier = Modifier.align(Alignment.CenterHorizontally))
-            return@Column
-        }
-        
-        if (uiState.errorMessage != null) {
-            Text(text = "Error: ${uiState.errorMessage}", color = Color.Red, modifier = Modifier.align(Alignment.CenterHorizontally))
+        // Not signed in
+        if (currentUserId == null) {
+            Text(
+                text = "Sign in to see your squad.",
+                color = TextSecondary,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
             return@Column
         }
 
-        // Incoming Ride Invites Section
+        if (uiState.isLoading) {
+            CircularProgressIndicator(
+                color = NeonOrange,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+            return@Column
+        }
+
+        uiState.errorMessage?.let { err ->
+            Text(
+                text = "Error: $err",
+                color = AlertRed,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+            return@Column
+        }
+
+        // Incoming invites
         if (uiState.invites.isNotEmpty()) {
             Text(
                 text = "INCOMING INVITES (${uiState.invites.size})",
@@ -126,7 +144,6 @@ fun SquadScreen(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.5.sp
             )
-            
             Spacer(modifier = Modifier.height(16.dp))
 
             for (invite in uiState.invites) {
@@ -139,8 +156,16 @@ fun SquadScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(text = invite.room.name.uppercase(), color = Color.White, fontWeight = FontWeight.Bold)
-                        Text(text = "Invited by ${invite.inviter.handle}", color = TextSecondary, fontSize = 12.sp)
+                        Text(
+                            text = invite.room.name.uppercase(),
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Invited by ${invite.inviter.handle}",
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
                     }
                     Button(
                         onClick = { /* Join Room */ },
@@ -156,7 +181,7 @@ fun SquadScreen(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // Active Squad List
+        // Friends list
         Text(
             text = "ONLINE FRIENDS (${uiState.friends.size})",
             color = TextSecondary,
@@ -164,24 +189,24 @@ fun SquadScreen(
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.5.sp
         )
-
         Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(uiState.friends.size) { index ->
-                val friend = uiState.friends[index]
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(uiState.friends.size) { i ->
+                val friend = uiState.friends[i]
                 SquadMemberCard(
-                    handle = friend.handle, 
-                    bike = friend.bikeModel ?: "Unknown Bike", 
+                    handle = friend.handle,
+                    bike   = friend.bikeModel ?: "Unknown Bike",
                     status = "Online"
                 )
             }
-            
             if (uiState.friends.isEmpty()) {
                 item {
-                    Text(text = "No friends found. Add some riders!", color = TextSecondary, modifier = Modifier.padding(16.dp))
+                    Text(
+                        text = "No friends yet. Search by @handle to add riders.",
+                        color = TextSecondary,
+                        modifier = Modifier.padding(16.dp)
+                    )
                 }
             }
         }
@@ -195,11 +220,10 @@ fun SquadMemberCard(handle: String, bike: String, status: String) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(DarkSlate)
-            .clickable { /* View Profile */ }
+            .clickable { }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Avatar Placeholder
         Box(
             modifier = Modifier
                 .size(48.dp)
@@ -209,14 +233,11 @@ fun SquadMemberCard(handle: String, bike: String, status: String) {
         ) {
             Text(handle.take(2).uppercase(), color = Color.White, fontWeight = FontWeight.Bold)
         }
-        
         Spacer(modifier = Modifier.width(16.dp))
-        
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = handle, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(text = "@$handle", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             Text(text = bike, color = TextSecondary, fontSize = 12.sp)
         }
-        
         Text(
             text = status,
             color = if (status == "Online") SuccessGreen else NeonOrange,

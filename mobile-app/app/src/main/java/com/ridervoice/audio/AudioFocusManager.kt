@@ -13,45 +13,54 @@ import javax.inject.Singleton
 class AudioFocusManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    companion object {
+        private const val TAG = "AudioFocusManager"
+    }
+
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+    // BUG FIX: Was never nulled out after abandoning.
+    // Some OEM AudioManagers (Samsung, Xiaomi) throw on double-abandon
+    // when onDestroy and onCleared both call abandonFocus().
     private var focusRequest: AudioFocusRequest? = null
 
-    private val focusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
-        when (focusChange) {
-            AudioManager.AUDIOFOCUS_GAIN -> Log.d("AudioFocusManager", "Audio Focus Gained")
-            AudioManager.AUDIOFOCUS_LOSS -> Log.d("AudioFocusManager", "Audio Focus Lost (Permanent)")
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> Log.d("AudioFocusManager", "Audio Focus Lost (Transient)")
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> Log.d("AudioFocusManager", "Audio Focus Lost (Ducking)")
+    private val focusChangeListener = AudioManager.OnAudioFocusChangeListener { change ->
+        when (change) {
+            AudioManager.AUDIOFOCUS_GAIN                   -> Log.d(TAG, "Focus gained")
+            AudioManager.AUDIOFOCUS_LOSS                   -> Log.w(TAG, "Focus lost (permanent) — mic will be muted by LiveKitManager")
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT         -> Log.d(TAG, "Focus lost (transient)")
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> Log.d(TAG, "Focus ducked")
         }
     }
 
     fun requestFocus() {
-        val audioAttributes = AudioAttributes.Builder()
+        if (focusRequest != null) return  // already holding focus
+
+        val attrs = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
             .build()
 
-        focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
-            .setAudioAttributes(audioAttributes)
+        val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+            .setAudioAttributes(attrs)
             .setAcceptsDelayedFocusGain(true)
             .setOnAudioFocusChangeListener(focusChangeListener)
             .build()
 
-        focusRequest?.let {
-            val result = audioManager.requestAudioFocus(it)
-            if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                Log.d("AudioFocusManager", "Audio Focus Granted")
-            } else {
-                Log.d("AudioFocusManager", "Audio Focus Denied")
-            }
+        val result = audioManager.requestAudioFocus(req)
+        if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED ||
+            result == AudioManager.AUDIOFOCUS_REQUEST_DELAYED) {
+            focusRequest = req
+            Log.d(TAG, "Audio focus granted (result=$result)")
+        } else {
+            Log.e(TAG, "Audio focus DENIED (result=$result)")
         }
     }
 
     fun abandonFocus() {
-        focusRequest?.let {
-            audioManager.abandonAudioFocusRequest(it)
-            focusRequest = null
-            Log.d("AudioFocusManager", "Audio Focus Abandoned")
-        }
+        val req = focusRequest ?: return   // BUG FIX: guard — nothing to abandon
+        audioManager.abandonAudioFocusRequest(req)
+        focusRequest = null                // BUG FIX: null out so double-call is safe
+        Log.d(TAG, "Audio focus abandoned")
     }
 }

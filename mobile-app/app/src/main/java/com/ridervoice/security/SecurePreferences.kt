@@ -38,4 +38,20 @@ class SecurePreferences(context: Context) {
     fun clear() {
         prefs.edit().clear().apply()
     }
+
+    fun saveDeviceConfigured(configured: Boolean) {
+        prefs.edit().putBoolean("device_configured", configured).apply()
+    }
+
+    fun isDeviceConfigured(): Boolean {
+        return prefs.getBoolean("device_configured", false)
+    }
+
+    fun saveDeviceName(name: String) {
+        prefs.edit().putString("device_name", name).apply()
+    }
+
+    fun getDeviceName(): String? {
+        return prefs.getString("device_name", null)
+    }
 }

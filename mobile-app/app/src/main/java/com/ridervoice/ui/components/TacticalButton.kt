@@ -23,11 +23,13 @@ fun TacticalButton(
     modifier: Modifier = Modifier,
     isOutlined: Boolean = false,
     color: Color = NeonOrange,
-    textColor: Color = Color.White
+    textColor: Color = Color.White,
+    enabled: Boolean = true
 ) {
     if (isOutlined) {
         OutlinedButton(
             onClick = onClick,
+            enabled = enabled,
             modifier = modifier
                 .fillMaxWidth()
                 .height(64.dp),
@@ -46,6 +48,7 @@ fun TacticalButton(
     } else {
         Button(
             onClick = onClick,
+            enabled = enabled,
             modifier = modifier
                 .fillMaxWidth()
                 .height(64.dp),

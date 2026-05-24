@@ -14,29 +14,26 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ridervoice.ui.theme.*
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.runtime.collectAsState
 import com.ridervoice.ui.viewmodels.AuthViewModel
+import com.ridervoice.ui.viewmodels.SettingsViewModel
 import com.ridervoice.ui.components.TacticalButton
 
 @Composable
 fun SettingsScreen(
-    viewModel: AuthViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
     onSignOutSuccess: () -> Unit
 ) {
-    val loginSuccess = viewModel.loginSuccess.collectAsState(initial = true).value
-    
-    LaunchedEffect(loginSuccess) {
-        if (!loginSuccess) {
-            onSignOutSuccess()
-        }
-    }
+    val settingsState by settingsViewModel.settingsState.collectAsState()
+
+    var showOptionsDialog by remember { mutableStateOf<Pair<String, List<String>>?>(null) }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -67,30 +64,69 @@ fun SettingsScreen(
             ) {
                 item {
                     SettingsSectionHeader("AUDIO SETTINGS")
-                    SettingsItemValue("Mic Sensitivity", "High")
-                    SettingsItemValue("VOX Sensitivity", "Medium")
-                    SettingsItemToggle("Noise Cancellation", true)
-                    SettingsItemValue("Audio Output", "Cardo Packtalk")
+                    SettingsItemValue(
+                        label = "Mic Sensitivity",
+                        value = settingsState.micSensitivity,
+                        onClick = { showOptionsDialog = "micSensitivity" to listOf("Low", "Medium", "High") }
+                    )
+                    SettingsItemValue(
+                        label = "VOX Sensitivity",
+                        value = settingsState.voxSensitivity,
+                        onClick = { showOptionsDialog = "voxSensitivity" to listOf("Low", "Medium", "High") }
+                    )
+                    SettingsItemToggle(
+                        label = "Noise Cancellation",
+                        checked = settingsState.noiseCancellation,
+                        onCheckedChange = { settingsViewModel.toggleNoiseCancellation() }
+                    )
+                    SettingsItemValue(
+                        label = "Audio Output",
+                        value = settingsState.audioOutput,
+                        onClick = { showOptionsDialog = "audioOutput" to listOf("Auto", "Bluetooth SCO", "Wired", "Earpiece") }
+                    )
                 }
                 
                 item {
                     SettingsSectionHeader("RIDING SETTINGS")
-                    SettingsItemToggle("Auto HUD Mode", true)
-                    SettingsItemValue("Speed for HUD", "15 km/h")
-                    SettingsItemToggle("Glove Mode", true)
+                    SettingsItemToggle(
+                        label = "Auto HUD Mode",
+                        checked = settingsState.autoHudMode,
+                        onCheckedChange = { settingsViewModel.toggleAutoHud() }
+                    )
+                    SettingsItemValue(
+                        label = "Speed for HUD",
+                        value = settingsState.speedForHud,
+                        onClick = { showOptionsDialog = "speedForHud" to listOf("10 km/h", "15 km/h", "20 km/h", "Disabled") }
+                    )
+                    SettingsItemToggle(
+                        label = "Glove Mode",
+                        checked = settingsState.gloveMode,
+                        onCheckedChange = { settingsViewModel.toggleGloveMode() }
+                    )
                 }
 
                 item {
                     SettingsSectionHeader("COMMUNICATION")
-                    SettingsItemToggle("Open Mic", true)
-                    SettingsItemValue("Reconnect", "Auto")
+                    SettingsItemToggle(
+                        label = "Open Mic",
+                        checked = settingsState.openMic,
+                        onCheckedChange = { settingsViewModel.toggleOpenMic() }
+                    )
+                    SettingsItemValue(
+                        label = "Reconnect",
+                        value = settingsState.reconnectMode,
+                        onClick = { showOptionsDialog = "reconnectMode" to listOf("Auto", "Manual") }
+                    )
                 }
                 
                 item {
                     Spacer(modifier = Modifier.height(32.dp))
                     TacticalButton(
                         text = "Sign Out",
-                        onClick = { viewModel.signOut() },
+                        onClick = { 
+                            authViewModel.signOut() 
+                            onSignOutSuccess()
+                        },
                         isOutlined = true,
                         color = Color(0xFF1D232B),
                         textColor = NeonOrange,
@@ -102,6 +138,37 @@ fun SettingsScreen(
         
         // Bottom Navigation Bar Overlay
         BottomNavBar(modifier = Modifier.align(Alignment.BottomCenter))
+
+        // Options Dialog
+        showOptionsDialog?.let { (key, options) ->
+            AlertDialog(
+                onDismissRequest = { showOptionsDialog = null },
+                title = { Text(text = "Select Option", color = Color.White) },
+                containerColor = Gunmetal,
+                text = {
+                    Column {
+                        options.forEach { option ->
+                            Text(
+                                text = option,
+                                color = ElectricCyan,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        settingsViewModel.updateSettingValue(key, option)
+                                        showOptionsDialog = null
+                                    }
+                                    .padding(vertical = 12.dp)
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showOptionsDialog = null }) {
+                        Text("Cancel", color = TextSecondary)
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -141,13 +208,11 @@ fun SettingsItemValue(label: String, value: String, onClick: () -> Unit = {}) {
 }
 
 @Composable
-fun SettingsItemToggle(label: String, initialValue: Boolean) {
-    var checked by remember { mutableStateOf(initialValue) }
-    
+fun SettingsItemToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { checked = !checked }
+            .clickable { onCheckedChange(!checked) }
             .padding(horizontal = 24.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -159,7 +224,7 @@ fun SettingsItemToggle(label: String, initialValue: Boolean) {
         }
         Switch(
             checked = checked,
-            onCheckedChange = { checked = it },
+            onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
                 checkedTrackColor = SuccessGreen,

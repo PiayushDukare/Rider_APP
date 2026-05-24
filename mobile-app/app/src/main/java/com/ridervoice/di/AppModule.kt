@@ -90,4 +90,10 @@ object AppModule {
     fun provideRideDao(database: com.ridervoice.data.local.RideDatabase): com.ridervoice.data.local.RideDao {
         return database.rideDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideSecurePreferences(@dagger.hilt.android.qualifiers.ApplicationContext context: android.content.Context): com.ridervoice.security.SecurePreferences {
+        return com.ridervoice.security.SecurePreferences(context)
+    }
 }

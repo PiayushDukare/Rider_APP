@@ -34,11 +34,14 @@ import com.ridervoice.ui.viewmodels.HomeViewModel
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
+    onHostRideClick: () -> Unit,
+    onJoinRideClick: () -> Unit,
     onStartRideClick: (String) -> Unit,
     onSquadClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onRoutePlannerClick: () -> Unit,
-    onRideHistoryClick: () -> Unit
+    onRideHistoryClick: () -> Unit,
+    onDeviceSetupClick: () -> Unit
 ) {
     val uiState = viewModel.uiState.collectAsState().value
     val context = LocalContext.current
@@ -48,6 +51,10 @@ fun HomeScreen(
             val warning = OEMBatteryWarning.getBatteryOptimizationWarningText()
             Toast.makeText(context, warning, Toast.LENGTH_LONG).show()
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshDeviceState()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -96,7 +103,11 @@ fun HomeScreen(
                     .clip(RoundedCornerShape(16.dp))
                     .background(DarkSlate)
                     .border(1.dp, Gunmetal, RoundedCornerShape(16.dp))
-                    .clickable { onStartRideClick("CONVOY-" + (1000..9999).random()) }
+                    .clickable { 
+                        if (uiState.hasActiveRide && uiState.activeRideName.isNotBlank()) {
+                            onStartRideClick(uiState.activeRideName) 
+                        }
+                    }
                     .padding(24.dp)
             ) {
                 Column {
@@ -137,10 +148,10 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                item { QuickActionCard("START RIDE", Icons.Default.PlayArrow, NeonOrange) { onStartRideClick("CONVOY-" + (1000..9999).random()) } }
-                item { QuickActionCard("JOIN RIDE", Icons.Default.GroupAdd, ElectricCyan) { onSquadClick() } }
+                item { QuickActionCard("HOST RIDE", Icons.Default.PlayArrow, NeonOrange) { onHostRideClick() } }
+                item { QuickActionCard("JOIN RIDE", Icons.Default.GroupAdd, ElectricCyan) { onJoinRideClick() } }
                 item { QuickActionCard("ROUTE PLANNER", Icons.Default.Map, TextSecondary) { onRoutePlannerClick() } }
-                item { QuickActionCard("QUICK INTERCOM", Icons.Default.Mic, TextSecondary) { } }
+                item { QuickActionCard("SQUAD", Icons.Default.Group, TextSecondary) { onSquadClick() } }
                 item { QuickActionCard("NEARBY RIDERS", Icons.Default.LocationOn, TextSecondary) { } }
                 item { QuickActionCard("RIDE HISTORY", Icons.Default.History, TextSecondary) { onRideHistoryClick() } }
             }
@@ -165,9 +176,11 @@ fun HomeScreen(
                 SystemStatusCard(
                     title = uiState.deviceName,
                     status = uiState.deviceStatus,
-                    color = if (uiState.isDeviceConnected) SuccessGreen else TextSecondary,
+                    color = if (uiState.isDeviceConnected) SuccessGreen 
+                            else if (uiState.isDeviceConfigured) NeonOrange 
+                            else TextSecondary,
                     icon = Icons.Default.Headset,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).clickable { onDeviceSetupClick() }
                 )
                 SystemStatusCard(
                     title = "Network",

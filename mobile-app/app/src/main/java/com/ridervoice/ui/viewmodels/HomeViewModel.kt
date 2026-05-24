@@ -1,35 +1,72 @@
 package com.ridervoice.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.ridervoice.audio.AudioDeviceRouter
+import com.ridervoice.audio.RouterState
+import com.ridervoice.security.SecurePreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class HomeState(
     val hasActiveRide: Boolean = false,
     val activeRideName: String = "",
     val activeRideSubtitle: String = "Start or join a ride to connect",
-    val deviceName: String = "Cardo Packtalk",
-    val deviceStatus: String = "Connected",
-    val isDeviceConnected: Boolean = true,
+    val deviceName: String = "No Device",
+    val deviceStatus: String = "Tap to configure",
+    val isDeviceConnected: Boolean = false,
+    val isDeviceConfigured: Boolean = false,
     val networkStatus: String = "Strong",
     val isNetworkStrong: Boolean = true
 )
 
 @HiltViewModel
-class HomeViewModel @Inject constructor() : ViewModel() {
+class HomeViewModel @Inject constructor(
+    private val securePrefs: SecurePreferences,
+    private val audioDeviceRouter: AudioDeviceRouter
+) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(HomeState())
+    private val isConfigured = securePrefs.isDeviceConfigured()
+    private val devName = securePrefs.getDeviceName() ?: "No Device"
+
+    private val _uiState = MutableStateFlow(HomeState(
+        isDeviceConfigured = isConfigured,
+        deviceName = if (isConfigured) devName else "No Device",
+        deviceStatus = if (isConfigured) "Configured (Disconnected)" else "Tap to configure"
+    ))
     val uiState: StateFlow<HomeState> = _uiState.asStateFlow()
 
-    // Example methods to dynamically alter state later based on real sensors/data
-    fun updateDeviceStatus(isConnected: Boolean, name: String = "Cardo Packtalk") {
+    init {
+        viewModelScope.launch {
+            audioDeviceRouter.routerState.collectLatest { state ->
+                val configured = securePrefs.isDeviceConfigured()
+                val isConnected = state == RouterState.ACTIVE
+                
+                _uiState.value = _uiState.value.copy(
+                    isDeviceConnected = isConnected,
+                    deviceStatus = when {
+                        isConnected -> "Connected"
+                        state == RouterState.CONNECTING_BT -> "Connecting..."
+                        state == RouterState.SCANNING -> "Scanning..."
+                        configured -> "Configured (Disconnected)"
+                        else -> "Tap to configure"
+                    }
+                )
+            }
+        }
+    }
+
+    fun refreshDeviceState() {
+        val configured = securePrefs.isDeviceConfigured()
+        val name = securePrefs.getDeviceName() ?: "No Device"
         _uiState.value = _uiState.value.copy(
-            isDeviceConnected = isConnected,
-            deviceName = name,
-            deviceStatus = if (isConnected) "Connected" else "Disconnected"
+            isDeviceConfigured = configured,
+            deviceName = if (configured) name else "No Device"
         )
     }
 
