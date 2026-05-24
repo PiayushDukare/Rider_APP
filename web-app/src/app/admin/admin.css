@@ -281,6 +281,24 @@
   font-size: 13px;
 }
 
+.admin-error {
+  color: #f1b1a8;
+  background: rgba(209, 91, 75, 0.15);
+  border: 1px solid rgba(209, 91, 75, 0.35);
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.admin-empty {
+  border: 1px dashed rgba(242, 230, 211, 0.2);
+  padding: 18px;
+  border-radius: 16px;
+  color: var(--admin-muted);
+  font-size: 13px;
+  background: rgba(20, 16, 13, 0.55);
+}
+
 .admin-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

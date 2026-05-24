@@ -1,4 +1,19 @@
-export default function AdminRolesPage() {
+import { supabaseAdmin } from "@/utils/supabase/admin";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdminRolesPage() {
+  const [adminCount, customerCount] = await Promise.all([
+    supabaseAdmin
+      .from("User")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "ADMIN"),
+    supabaseAdmin
+      .from("User")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "CUSTOMER"),
+  ]);
+
   return (
     <section className="admin-card">
       <span className="admin-section-pill">Policy</span>
@@ -7,23 +22,16 @@ export default function AdminRolesPage() {
       <div className="admin-grid" style={{ marginTop: "20px" }}>
         <div className="admin-kpi">
           <span className="admin-tag">Admin</span>
-          <strong>Full operational access</strong>
+          <strong>{adminCount.count ?? 0} admins</strong>
           <span className="admin-muted">
             Can manage rides, rooms, alerts, and assign roles.
           </span>
         </div>
         <div className="admin-kpi">
           <span className="admin-tag">Customer</span>
-          <strong>Standard rider access</strong>
+          <strong>{customerCount.count ?? 0} customers</strong>
           <span className="admin-muted">
             Can join rides, manage profile, and view personal stats.
-          </span>
-        </div>
-        <div className="admin-kpi">
-          <span className="admin-tag">Guest</span>
-          <strong>Limited onboarding</strong>
-          <span className="admin-muted">
-            Read-only ride briefings until verified by an admin.
           </span>
         </div>
       </div>

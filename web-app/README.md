@@ -53,6 +53,10 @@ Set these in Vercel Project Settings → Environment Variables:
 - `FIREBASE_PROJECT_ID`
 - `FIREBASE_CLIENT_EMAIL`
 - `FIREBASE_PRIVATE_KEY` (paste with `\n` for line breaks)
+- `NEXT_PUBLIC_FIREBASE_API_KEY`
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- `NEXT_PUBLIC_FIREBASE_APP_ID`
 
 ### Session cookie flow
 The admin layout expects a Firebase session cookie named `__session`.

@@ -1,4 +1,30 @@
-export default function AdminReportsPage() {
+import { supabaseAdmin } from "@/utils/supabase/admin";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdminReportsPage() {
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(now.getDate() - 30);
+
+  const [ridesCount, roomsCount, inviteCount, totalDistance] = await Promise.all([
+    supabaseAdmin.from("RideSession").select("id", { count: "exact", head: true }),
+    supabaseAdmin.from("Room").select("id", { count: "exact", head: true }),
+    supabaseAdmin.from("RideInvite").select("id", { count: "exact", head: true }),
+    supabaseAdmin.from("RideSession").select("distanceKm"),
+  ]);
+
+  const { data: recentRides } = await supabaseAdmin
+    .from("RideSession")
+    .select("id, distanceKm, startTime")
+    .gte("startTime", thirtyDaysAgo.toISOString())
+    .order("startTime", { ascending: false })
+    .limit(6);
+
+  const totalDistanceValue = totalDistance.data
+    ? totalDistance.data.reduce((sum, ride) => sum + (ride.distanceKm ?? 0), 0)
+    : 0;
+
   return (
     <section className="admin-card">
       <span className="admin-section-pill">Reports</span>
@@ -6,32 +32,39 @@ export default function AdminReportsPage() {
       <p>Operational summaries for the last 30 days.</p>
       <div className="admin-split" style={{ marginTop: "20px" }}>
         <div className="admin-kpi">
-          <span className="admin-tag">Response time</span>
-          <strong>8m 14s</strong>
-          <span className="admin-muted">Median to resolve incidents</span>
+          <span className="admin-tag">Total rides</span>
+          <strong>{ridesCount.count ?? 0}</strong>
+          <span className="admin-muted">All time</span>
         </div>
         <div className="admin-kpi">
-          <span className="admin-tag">Audio uptime</span>
-          <strong>99.2%</strong>
-          <span className="admin-muted">Across 12 regions</span>
+          <span className="admin-tag">Total distance</span>
+          <strong>{totalDistanceValue.toFixed(1)} km</strong>
+          <span className="admin-muted">Across all rides</span>
         </div>
         <div className="admin-kpi">
-          <span className="admin-tag">Route compliance</span>
-          <strong>94%</strong>
-          <span className="admin-muted">Based on convoy check-ins</span>
+          <span className="admin-tag">Rooms / Invites</span>
+          <strong>{roomsCount.count ?? 0} / {inviteCount.count ?? 0}</strong>
+          <span className="admin-muted">Total created</span>
         </div>
       </div>
       <div className="admin-card" style={{ marginTop: "20px" }}>
-        <h2>Monthly impact</h2>
-        <div className="admin-chart">
-          {[45, 62, 58, 80, 72, 90].map((height, index) => (
-            <div
-              key={`report-bar-${index}`}
-              className="admin-chart__bar"
-              style={{ height: `${height}%` }}
-            />
-          ))}
-        </div>
+        <h2>Recent ride distances</h2>
+        {recentRides?.length ? (
+          <div className="admin-chart">
+            {recentRides.map((ride, index) => {
+              const height = Math.min(100, Math.max(8, ride.distanceKm ?? 0));
+              return (
+                <div
+                  key={`report-bar-${index}`}
+                  className="admin-chart__bar"
+                  style={{ height: `${height}%` }}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="admin-empty">No recent rides in the last 30 days.</div>
+        )}
       </div>
     </section>
   );

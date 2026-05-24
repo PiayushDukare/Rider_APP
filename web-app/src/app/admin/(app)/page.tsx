@@ -1,4 +1,31 @@
-export default function AdminDashboardPage() {
+import { supabaseAdmin } from "@/utils/supabase/admin";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdminDashboardPage() {
+  const [ridesCount, roomsCount, usersCount, inviteCount, rides] = await Promise.all([
+    supabaseAdmin.from("RideSession").select("id", { count: "exact", head: true }),
+    supabaseAdmin.from("Room").select("id", { count: "exact", head: true }),
+    supabaseAdmin.from("User").select("id", { count: "exact", head: true }),
+    supabaseAdmin.from("RideInvite").select("id", { count: "exact", head: true }),
+    supabaseAdmin
+      .from("RideSession")
+      .select("id, startTime, endTime, distanceKm, riderId")
+      .order("startTime", { ascending: false })
+      .limit(6),
+  ]);
+
+  const activeRides = await supabaseAdmin
+    .from("RideSession")
+    .select("id", { count: "exact", head: true })
+    .is("endTime", null);
+
+  const riderIds = rides.data?.map((ride) => ride.riderId).filter(Boolean) ?? [];
+  const { data: riders } = riderIds.length
+    ? await supabaseAdmin.from("User").select("id, displayName, email").in("id", riderIds)
+    : { data: [] };
+  const riderMap = new Map(riders?.map((rider) => [rider.id, rider]));
+
   return (
     <>
       <section className="admin-card">
@@ -10,10 +37,26 @@ export default function AdminDashboardPage() {
         </p>
         <div className="admin-grid" style={{ marginTop: "20px" }}>
           {[
-            { label: "Active rides", value: "24", note: "8 high priority" },
-            { label: "Live rooms", value: "16", note: "2 unstable" },
-            { label: "Active alerts", value: "3", note: "1 safety" },
-            { label: "Dispatch SLA", value: "92%", note: "Last 7 days" },
+            {
+              label: "Active rides",
+              value: activeRides.count ?? 0,
+              note: "Currently in progress",
+            },
+            {
+              label: "Live rooms",
+              value: roomsCount.count ?? 0,
+              note: "Total rooms",
+            },
+            {
+              label: "Total users",
+              value: usersCount.count ?? 0,
+              note: "Registered riders",
+            },
+            {
+              label: "Ride invites",
+              value: inviteCount.count ?? 0,
+              note: "Total invites",
+            },
           ].map((kpi) => (
             <div key={kpi.label} className="admin-kpi">
               <span className="admin-tag">{kpi.label}</span>
@@ -27,65 +70,57 @@ export default function AdminDashboardPage() {
       <section className="admin-split">
         <div className="admin-card">
           <h2>Live operations board</h2>
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Ride</th>
-                <th>Status</th>
-                <th>Lead</th>
-                <th>Members</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                {
-                  ride: "Western Ridge Patrol",
-                  status: "In motion",
-                  lead: "Maya D.",
-                  members: "12",
-                },
-                {
-                  ride: "Night Signal Run",
-                  status: "Holding",
-                  lead: "Rafi K.",
-                  members: "7",
-                },
-                {
-                  ride: "Coastal Sweep",
-                  status: "Escorted",
-                  lead: "Nora P.",
-                  members: "18",
-                },
-              ].map((row) => (
-                <tr key={row.ride}>
-                  <td>{row.ride}</td>
-                  <td>
-                    <span className="admin-tag admin-tag--success">
-                      {row.status}
-                    </span>
-                  </td>
-                  <td>{row.lead}</td>
-                  <td>{row.members}</td>
+          {rides.data?.length ? (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Ride</th>
+                  <th>Status</th>
+                  <th>Lead</th>
+                  <th>Distance (km)</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rides.data.map((ride) => {
+                  const rider = riderMap.get(ride.riderId);
+                  const status = ride.endTime ? "Completed" : "Active";
+                  return (
+                    <tr key={ride.id}>
+                      <td>{ride.id}</td>
+                      <td>
+                        <span className="admin-tag admin-tag--success">
+                          {status}
+                        </span>
+                      </td>
+                      <td>{rider?.displayName ?? rider?.email ?? ride.riderId}</td>
+                      <td>{ride.distanceKm}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <div className="admin-empty">No ride sessions available yet.</div>
+          )}
         </div>
         <div className="admin-card">
           <h2>Signal health</h2>
-          <div className="admin-chart">
-            {[30, 55, 42, 70, 52, 90].map((height, index) => (
-              <div
-                key={`bar-${index}`}
-                className="admin-chart__bar"
-                style={{ height: `${height}%` }}
-              />
-            ))}
-          </div>
-          <p style={{ marginTop: "16px" }}>
-            Audio latency holding steady across regions. Two rooms flagged for
-            elevated jitter.
-          </p>
+          {rides.data?.length ? (
+            <div className="admin-chart">
+              {rides.data.map((ride, index) => {
+                const height = Math.min(100, Math.max(8, ride.distanceKm ?? 0));
+                return (
+                  <div
+                    key={`bar-${index}`}
+                    className="admin-chart__bar"
+                    style={{ height: `${height}%` }}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className="admin-empty">No telemetry data available yet.</div>
+          )}
         </div>
       </section>
     </>
