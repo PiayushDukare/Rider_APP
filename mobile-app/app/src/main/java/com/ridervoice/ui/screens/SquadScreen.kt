@@ -36,6 +36,7 @@ fun SquadScreen(
     val currentUserId = remember {
         FirebaseAuth.getInstance().currentUser?.uid
     }
+    var showAddFriendDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentUserId) {
         if (currentUserId != null) {
@@ -77,7 +78,7 @@ fun SquadScreen(
             }
 
             IconButton(
-                onClick = { /* Open Add Friend Modal */ },
+                onClick = { showAddFriendDialog = true },
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(DarkSlate)
@@ -210,6 +211,44 @@ fun SquadScreen(
                 }
             }
         }
+    }
+    
+    if (showAddFriendDialog) {
+        var friendHandle by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showAddFriendDialog = false },
+            title = { Text("Add Rider to Squad", color = Color.White) },
+            text = {
+                OutlinedTextField(
+                    value = friendHandle,
+                    onValueChange = { friendHandle = it },
+                    placeholder = { Text("@handle", color = TextSecondary) },
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = NeonOrange,
+                        unfocusedBorderColor = Gunmetal,
+                        containerColor = DarkSlate,
+                        textColor = Color.White
+                    ),
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (friendHandle.isNotBlank() && currentUserId != null) {
+                        viewModel.addFriend(currentUserId, friendHandle)
+                    }
+                    showAddFriendDialog = false
+                }) {
+                    Text("ADD", color = NeonOrange, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddFriendDialog = false }) {
+                    Text("CANCEL", color = TextSecondary)
+                }
+            },
+            containerColor = GraphiteBase
+        )
     }
 }
 

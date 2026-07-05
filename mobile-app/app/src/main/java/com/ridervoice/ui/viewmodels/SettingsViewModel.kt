@@ -26,38 +26,70 @@ class SettingsViewModel @Inject constructor(
     private val securePrefs: SecurePreferences
 ) : ViewModel() {
 
-    private val _settingsState = MutableStateFlow(AppSettingsState())
+    private val _settingsState = MutableStateFlow(loadInitialState())
     val settingsState: StateFlow<AppSettingsState> = _settingsState.asStateFlow()
+
+    private fun loadInitialState(): AppSettingsState {
+        return AppSettingsState(
+            noiseCancellation = securePrefs.getBoolean("settings_noise_cancellation", true),
+            openMic = securePrefs.getBoolean("settings_open_mic", true),
+            autoHudMode = securePrefs.getBoolean("settings_auto_hud", true),
+            gloveMode = securePrefs.getBoolean("settings_glove_mode", true),
+            micSensitivity = securePrefs.getString("settings_mic_sensitivity", "High"),
+            voxSensitivity = securePrefs.getString("settings_vox_sensitivity", "Medium"),
+            audioOutput = securePrefs.getString("settings_audio_output", "Auto"),
+            speedForHud = securePrefs.getString("settings_speed_hud", "15 km/h"),
+            reconnectMode = securePrefs.getString("settings_reconnect_mode", "Auto")
+        )
+    }
 
     fun toggleNoiseCancellation() {
         val current = _settingsState.value.noiseCancellation
         _settingsState.value = _settingsState.value.copy(noiseCancellation = !current)
-        // Todo: Actually save to SecurePreferences
+        securePrefs.saveBoolean("settings_noise_cancellation", !current)
     }
 
     fun toggleOpenMic() {
         val current = _settingsState.value.openMic
         _settingsState.value = _settingsState.value.copy(openMic = !current)
+        securePrefs.saveBoolean("settings_open_mic", !current)
     }
 
     fun toggleAutoHud() {
         val current = _settingsState.value.autoHudMode
         _settingsState.value = _settingsState.value.copy(autoHudMode = !current)
+        securePrefs.saveBoolean("settings_auto_hud", !current)
     }
 
     fun toggleGloveMode() {
         val current = _settingsState.value.gloveMode
         _settingsState.value = _settingsState.value.copy(gloveMode = !current)
+        securePrefs.saveBoolean("settings_glove_mode", !current)
     }
 
     fun updateSettingValue(key: String, value: String) {
         val current = _settingsState.value
         _settingsState.value = when (key) {
-            "micSensitivity" -> current.copy(micSensitivity = value)
-            "voxSensitivity" -> current.copy(voxSensitivity = value)
-            "audioOutput" -> current.copy(audioOutput = value)
-            "speedForHud" -> current.copy(speedForHud = value)
-            "reconnectMode" -> current.copy(reconnectMode = value)
+            "micSensitivity" -> {
+                securePrefs.saveString("settings_mic_sensitivity", value)
+                current.copy(micSensitivity = value)
+            }
+            "voxSensitivity" -> {
+                securePrefs.saveString("settings_vox_sensitivity", value)
+                current.copy(voxSensitivity = value)
+            }
+            "audioOutput" -> {
+                securePrefs.saveString("settings_audio_output", value)
+                current.copy(audioOutput = value)
+            }
+            "speedForHud" -> {
+                securePrefs.saveString("settings_speed_hud", value)
+                current.copy(speedForHud = value)
+            }
+            "reconnectMode" -> {
+                securePrefs.saveString("settings_reconnect_mode", value)
+                current.copy(reconnectMode = value)
+            }
             else -> current
         }
     }

@@ -135,11 +135,7 @@ fun SettingsScreen(
                 }
             }
         }
-        
-        // Bottom Navigation Bar Overlay
-        BottomNavBar(modifier = Modifier.align(Alignment.BottomCenter))
-
-        // Options Dialog
+        // Bottom Navigation Bar Removed        // Options Dialog
         showOptionsDialog?.let { (key, options) ->
             AlertDialog(
                 onDismissRequest = { showOptionsDialog = null },

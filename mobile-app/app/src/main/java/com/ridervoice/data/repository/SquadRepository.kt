@@ -34,4 +34,18 @@ class SquadRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    suspend fun addFriend(userId: String, handle: String): Result<Unit> {
+        return try {
+            val request = com.ridervoice.models.FriendRequest(handle = handle)
+            val response = apiService.sendFriendRequest(request)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Failed to send friend request: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

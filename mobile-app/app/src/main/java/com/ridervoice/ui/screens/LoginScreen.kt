@@ -172,12 +172,6 @@ fun LoginScreen(
                 label = { Text("Phone Number", color = TextSecondary) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    containerColor = DarkSlate,
-                    textColor = Color.White,
-                    focusedBorderColor = NeonOrange,
-                    unfocusedBorderColor = Gunmetal
-                ),
                 shape = RoundedCornerShape(12.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -198,12 +192,6 @@ fun LoginScreen(
                 label = { Text("6-Digit Code", color = TextSecondary) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    containerColor = DarkSlate,
-                    textColor = Color.White,
-                    focusedBorderColor = NeonOrange,
-                    unfocusedBorderColor = Gunmetal
-                ),
                 shape = RoundedCornerShape(12.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))

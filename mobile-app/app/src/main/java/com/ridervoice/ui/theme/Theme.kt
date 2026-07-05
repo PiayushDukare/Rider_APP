@@ -12,7 +12,7 @@ import androidx.core.view.WindowCompat
 private val TacticalDarkColorScheme = darkColorScheme(
     primary = NeonOrange,
     secondary = ElectricCyan,
-    tertiary = SuccessGreen,
+    tertiary = NeonViolet, // Upgraded to NeonViolet for gradients
     background = GraphiteBase,
     surface = DarkSlate,
     onPrimary = GraphiteBase,

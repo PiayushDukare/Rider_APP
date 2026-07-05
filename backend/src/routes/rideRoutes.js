@@ -8,9 +8,13 @@ const router = express.Router();
 // Receives compressed ride JSON and saves to the database
 router.post('/sync', async (req, res) => {
     try {
-        const { riderId, roomName, startTime, endTime, distanceKm, privacyState, routeJson, events } = req.body;
+        // BUG FIX: Use authenticated user's ID from Firebase token, not from body.
+        // Trusting req.body.riderId is a security vulnerability — any user could
+        // create rides attributed to another user.
+        const riderId = req.user.uid;
+        const { roomName, startTime, endTime, distanceKm, privacyState, routeJson, events } = req.body;
 
-        if (!riderId || !startTime) {
+        if (!startTime) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 

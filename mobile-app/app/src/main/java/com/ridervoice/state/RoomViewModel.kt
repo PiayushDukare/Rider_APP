@@ -115,6 +115,9 @@ class RoomViewModel @Inject constructor(
         locationService.currentLocation
             .filterNotNull()
             .onEach { loc ->
+                // Update VOX engine with current speed to adjust for wind noise
+                voxEngine.updateSpeed(loc.speed)
+                
                 if (liveKitManager.connectionState.value == ConnectionState.CONNECTED) {
                     liveKitManager.publishLocation(
                         RiderLocation(

@@ -135,7 +135,7 @@ fun RoomScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
-                .padding(top = 130.dp)
+                .padding(top = if (error != null) 190.dp else 130.dp) // BUG FIX: Move down if error banner is showing
                 .clip(RoundedCornerShape(8.dp))
                 .background(DarkSlate)
                 .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -375,10 +375,16 @@ private fun AmplitudeBar(
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .width(1.dp)
-                    .offset(x = (modifier.toString().length * markerFraction).dp) // approximation
-                    .background(NeonOrange.copy(alpha = 0.6f))
-            )
+                    .fillMaxWidth(markerFraction),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(2.dp)
+                        .background(NeonOrange.copy(alpha = 0.8f))
+                )
+            }
         }
     }
 }

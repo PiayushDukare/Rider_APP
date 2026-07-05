@@ -1,14 +1,18 @@
 package com.ridervoice.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.ridervoice.models.ConvoyCreateRequest
+import com.ridervoice.network.ApiService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class HostSetupViewModel @Inject constructor(
-    private val apiService: com.ridervoice.network.ApiService
+    private val apiService: ApiService
 ) : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
@@ -26,20 +30,24 @@ class HostSetupViewModel @Inject constructor(
         meetupPoint: String?,
         estimatedDurationMin: Int?
     ) {
-        androidx.lifecycle.viewModelScope.launch {
+        viewModelScope.launch {
             _isLoading.value = true
+            _error.value = null
             try {
-                val req = com.ridervoice.models.ConvoyCreateRequest(
+                val req = ConvoyCreateRequest(
                     convoyName, origin, destination, estimatedDurationMin, meetupPoint
                 )
                 val response = apiService.createConvoy(req)
                 if (response.isSuccessful && response.body() != null) {
-                    _createdConvoyName.value = response.body()!!.roomId
+                    // BUG FIX: Use convoyName (the human-readable name), NOT roomId (UUID).
+                    // All downstream APIs (lobby status, start ride, invite friends) look up
+                    // rooms by Room.name, not Room.id. Passing a UUID causes 404 everywhere.
+                    _createdConvoyName.value = response.body()!!.convoyName
                 } else {
-                    _error.value = "Failed to create convoy"
+                    _error.value = response.errorBody()?.string() ?: "Failed to create convoy"
                 }
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = e.message ?: "Network error"
             } finally {
                 _isLoading.value = false
             }

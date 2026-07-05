@@ -176,13 +176,20 @@ class AudioDeviceRouter @Inject constructor(
             addAction("android.hardware.usb.action.USB_AUDIO_ACCESSORY_PLUG")
             addAction("android.hardware.usb.action.USB_DEVICE_ATTACHED")
         }
-        context.registerReceiver(wiredHeadsetReceiver, wiredFilter)
-
-        // Register SCO state receiver
-        context.registerReceiver(
-            scoStateReceiver,
-            IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED)
-        )
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(wiredHeadsetReceiver, wiredFilter, Context.RECEIVER_NOT_EXPORTED)
+            context.registerReceiver(
+                scoStateReceiver,
+                IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED),
+                Context.RECEIVER_NOT_EXPORTED
+            )
+        } else {
+            context.registerReceiver(wiredHeadsetReceiver, wiredFilter)
+            context.registerReceiver(
+                scoStateReceiver,
+                IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED)
+            )
+        }
 
         // Acquire BluetoothHeadset profile proxy
         val btAdapter = BluetoothAdapter.getDefaultAdapter()

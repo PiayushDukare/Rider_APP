@@ -41,7 +41,7 @@ class AudioFocusManager @Inject constructor(
             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
             .build()
 
-        val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+        val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
             .setAudioAttributes(attrs)
             .setAcceptsDelayedFocusGain(true)
             .setOnAudioFocusChangeListener(focusChangeListener)

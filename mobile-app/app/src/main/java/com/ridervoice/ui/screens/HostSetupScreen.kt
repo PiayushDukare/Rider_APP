@@ -171,13 +171,6 @@ private fun TacticalTextField(
         placeholder = { Text(placeholder, color = TextSecondary, fontSize = 14.sp) },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         supportingText = supportingText?.let { { Text(it, color = TextSecondary, fontSize = 11.sp) } },
-        colors = TextFieldDefaults.outlinedTextFieldColors(
-            focusedBorderColor = NeonOrange,
-            unfocusedBorderColor = Gunmetal,
-            containerColor = DarkSlate,
-            textColor = Color.White,
-            cursorColor = NeonOrange
-        ),
         shape = RoundedCornerShape(12.dp)
     )
 }

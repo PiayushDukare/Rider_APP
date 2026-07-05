@@ -13,7 +13,14 @@ data class RoutePlannerState(
     val routeName: String = "NO ROUTE",
     val distanceKm: String = "0",
     val duration: String = "00:00",
-    val elevationGain: String = "0"
+    val elevationGain: String = "0",
+    val nearbyRiders: List<NearbyRider> = emptyList()
+)
+
+data class NearbyRider(
+    val handle: String,
+    val distanceKm: String,
+    val isOnline: Boolean = true
 )
 
 @HiltViewModel
@@ -21,6 +28,17 @@ class RoutePlannerViewModel @Inject constructor() : ViewModel() {
 
     private val _uiState = MutableStateFlow(RoutePlannerState())
     val uiState: StateFlow<RoutePlannerState> = _uiState.asStateFlow()
+
+    init {
+        // Load initial dummy nearby riders
+        _uiState.value = _uiState.value.copy(
+            nearbyRiders = listOf(
+                NearbyRider("MotoGhost", "2.4"),
+                NearbyRider("ApexHunter", "5.1"),
+                NearbyRider("TwistiesKing", "8.9")
+            )
+        )
+    }
 
     fun updateOrigin(origin: String) {
         _uiState.value = _uiState.value.copy(origin = origin)

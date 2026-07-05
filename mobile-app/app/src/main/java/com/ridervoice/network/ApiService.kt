@@ -65,10 +65,15 @@ interface ApiService {
 
     /** Joiner: get a LiveKit token after accepting an invite */
     @POST("/api/lobby/join-token")
-    suspend fun getJoinToken(@Body body: JoinTokenRequest): Response<RoomData>
+    suspend fun getJoinToken(@Body body: JoinTokenRequest): Response<StartRideResponse>
 
     // ── Legacy room token (kept for quick-join / guest) ───────────────────────
 
     @POST("/api/rooms/room/token")
     suspend fun getRoomToken(@Body body: RoomTokenRequest): Response<RoomData>
+
+    // ── Ride History ──────────────────────────────────────────────────────────────
+
+    @GET("/api/rides/history")
+    suspend fun getRideHistory(): Response<List<com.ridervoice.models.RideHistoryResponse>>
 }

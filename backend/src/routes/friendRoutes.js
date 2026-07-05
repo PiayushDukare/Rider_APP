@@ -9,18 +9,29 @@ const prisma  = require('../db')
  */
 router.post('/request', async (req, res, next) => {
     const requesterId = req.user.uid           // ← always the authenticated caller
-    const { addresseeId } = req.body
+    const { addresseeId, handle } = req.body
 
-    if (!addresseeId) {
-        return res.status(400).json({ error: 'addresseeId is required' })
-    }
-    if (requesterId === addresseeId) {
-        return res.status(400).json({ error: 'Cannot send a friend request to yourself' })
+    if (!addresseeId && !handle) {
+        return res.status(400).json({ error: 'addresseeId or handle is required' })
     }
 
     try {
-        // Check if addressee exists
-        const addressee = await prisma.user.findUnique({ where: { id: addresseeId } })
+        let targetId = addresseeId
+        if (handle) {
+            const cleanHandle = handle.startsWith('@') ? handle.substring(1) : handle
+            const userByHandle = await prisma.user.findUnique({ where: { handle: cleanHandle } })
+            if (!userByHandle) {
+                return res.status(404).json({ error: 'Rider handle not found' })
+            }
+            targetId = userByHandle.id
+        }
+
+        if (requesterId === targetId) {
+            return res.status(400).json({ error: 'Cannot send a friend request to yourself' })
+        }
+
+        // Check if addressee exists (in case addresseeId was passed directly)
+        const addressee = await prisma.user.findUnique({ where: { id: targetId } })
         if (!addressee) {
             return res.status(404).json({ error: 'Rider not found' })
         }

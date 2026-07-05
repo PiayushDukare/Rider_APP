@@ -47,12 +47,15 @@ class VoxEngine @Inject constructor() {
     // ── Tunable parameters ────────────────────────────────────────────────────
 
     /**
-     * Ratio above the dynamic noise floor needed to trigger voice open.
-     * 2.5× = the voice signal must be 2.5× louder than ambient noise.
-     * Higher values = more selective (fewer false triggers from wind/engine).
-     * Lower values = more sensitive (catches quiet speech in wind).
+     * Base ratio above the dynamic noise floor needed to trigger voice open.
+     * Adjusted by user sensitivity setting.
      */
-    private var openThresholdRatio = 2.5f
+    private var baseThresholdRatio = 2.5f
+
+    /**
+     * Dynamic penalty added based on GPS speed to combat wind noise.
+     */
+    private var speedPenalty = 0f
 
     /**
      * Once open, how long (ms) of silence before the mic closes again.
@@ -198,18 +201,33 @@ class VoxEngine @Inject constructor() {
 
     /**
      * Adjust VOX sensitivity.
-     * @param sensitivity 0.0 (most sensitive) to 1.0 (least sensitive)
      */
     fun setSensitivity(sensitivity: Float) {
-        // Map [0,1] to threshold ratio [1.5, 5.0]
-        openThresholdRatio = 1.5f + (sensitivity.coerceIn(0f, 1f) * 3.5f)
-        Log.d(TAG, "VOX threshold ratio set to $openThresholdRatio")
+        // Map [0,1] to base threshold ratio [1.5, 5.0]
+        baseThresholdRatio = 1.5f + (sensitivity.coerceIn(0f, 1f) * 3.5f)
+        Log.d(TAG, "VOX base threshold ratio set to $baseThresholdRatio")
+    }
+
+    /**
+     * Updates the current speed to dynamically adjust the VOX open threshold.
+     * Higher speeds = higher wind noise = more selective VOX.
+     * @param speedMps Speed in meters per second (from GPS)
+     */
+    fun updateSpeed(speedMps: Float) {
+        val speedKmh = speedMps * 3.6f
+        speedPenalty = when {
+            speedKmh > 120f -> 3.0f
+            speedKmh > 80f -> 1.5f
+            speedKmh > 50f -> 0.5f
+            else -> 0f
+        }
     }
 
     // ── Internal logic ─────────────────────────────────────────────────────────
 
     private fun evaluateVoxState(rms: Float) {
-        val threshold = noiseFloorEstimate * openThresholdRatio
+        val currentRatio = baseThresholdRatio + speedPenalty
+        val threshold = noiseFloorEstimate * currentRatio
         val now = System.currentTimeMillis()
 
         if (rms >= threshold) {
@@ -241,7 +259,8 @@ class VoxEngine @Inject constructor() {
 
     private fun openMic() {
         if (_isMicOpen.value) return
-        Log.d(TAG, "VOX OPEN (floor=${noiseFloorEstimate.toInt()}, threshold=${(noiseFloorEstimate * openThresholdRatio).toInt()})")
+        val currentRatio = baseThresholdRatio + speedPenalty
+        Log.d(TAG, "VOX OPEN (floor=${noiseFloorEstimate.toInt()}, threshold=${(noiseFloorEstimate * currentRatio).toInt()})")
         _isMicOpen.value = true
         onMicStateChange?.invoke(true)
     }

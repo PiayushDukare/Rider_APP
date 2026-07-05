@@ -64,7 +64,8 @@ data class SendInviteRequest(
 // ── Friends ───────────────────────────────────────────────────────────────────
 
 data class FriendRequest(
-    val addresseeId: String
+    val addresseeId: String? = null,
+    val handle: String? = null
 )
 
 // ── Device setup ──────────────────────────────────────────────────────────────
@@ -119,7 +120,19 @@ data class RiderLocation(
     val riderId: String,
     val lat: Double,
     val lng: Double,
-    val speed: Float,
-    val heading: Float,
+    val speed: Float?,
+    val heading: Float?,
     val timestamp: Long
+)
+
+// ── Ride History ──────────────────────────────────────────────────────────────
+
+data class RideHistoryResponse(
+    val id: String,
+    val riderId: String,
+    val startTime: String,
+    val endTime: String?,
+    val distanceKm: Float,
+    val privacyState: String,
+    val routeJson: String?
 )

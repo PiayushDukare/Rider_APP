@@ -3,6 +3,7 @@ package com.ridervoice.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -152,6 +153,52 @@ fun RoutePlannerScreen(
                 modifier = Modifier.fillMaxSize(),
                 mapViewportState = mapViewportState
             )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Nearby Riders
+        if (uiState.nearbyRiders.isNotEmpty()) {
+            Text(
+                text = "NEARBY RIDERS",
+                color = TextSecondary,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(uiState.nearbyRiders) { rider ->
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DarkSlate)
+                            .clickable { viewModel.updateDestination(rider.handle) }
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Gunmetal),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(rider.handle.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("@${rider.handle}", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text("${rider.distanceKm} km away", color = NeonOrange, fontSize = 10.sp)
+                        }
+                    }
+                }
+            }
         }
 
         // Bottom Stats & Action

@@ -2,15 +2,17 @@ package com.ridervoice.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Backgrounds & Surfaces
-val GraphiteBase = Color(0xFF0E1116)
-val DarkSlate = Color(0xFF151A20)
-val Gunmetal = Color(0xFF1D232B)
-val GraphiteSurface = Color(0xFF2B313B)
+// Backgrounds & Surfaces (OLED & Glassmorphism)
+val GraphiteBase = Color(0xFF000000) // True OLED Black
+val DarkSlate = Color(0xFF0D0D0D) // Ultra-dark panel base
+val Gunmetal = Color(0xFF1A1A1A) // Glassmorphic borders
+val GraphiteSurface = Color(0xFF262626)
 
-// Accents
+// Accents (Cyberpunk HUD aesthetics)
 val NeonOrange = Color(0xFFFF8A00)
-val ElectricCyan = Color(0xFF00B8D4)
+val ElectricCyan = Color(0xFF00F2FE) // Brighter cyan
+val NeonViolet = Color(0xFF4FACFE) // New Violet gradient base
+val TechGreen = Color(0xFF00FF87) // Futuristic success green
 
 // Status Colors
 val SuccessGreen = Color(0xFF22C55E)

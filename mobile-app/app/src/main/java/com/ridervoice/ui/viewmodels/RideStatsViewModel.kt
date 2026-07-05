@@ -22,7 +22,8 @@ data class RideStatsState(
 
 @HiltViewModel
 class RideStatsViewModel @Inject constructor(
-    private val rideDao: RideDao
+    private val rideDao: RideDao,
+    private val apiService: com.ridervoice.network.ApiService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RideStatsState())
@@ -55,6 +56,42 @@ class RideStatsViewModel @Inject constructor(
                     topSpeed = "0", // Top speed would require waypoint analysis
                     speedDataPoints = emptyList() // Needs full waypoint query to plot
                 )
+            }
+        }
+        
+        syncRides()
+    }
+
+    private fun syncRides() {
+        viewModelScope.launch {
+            try {
+                val response = apiService.getRideHistory()
+                if (response.isSuccessful) {
+                    val rides = response.body() ?: emptyList()
+                    val formatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+                    formatter.timeZone = java.util.TimeZone.getTimeZone("UTC")
+                    
+                    rides.forEach { rideResponse ->
+                        try {
+                            val startMs = formatter.parse(rideResponse.startTime)?.time ?: return@forEach
+                            val endMs = rideResponse.endTime?.let { formatter.parse(it)?.time }
+                            
+                            val entity = com.ridervoice.data.local.entities.RideSessionEntity(
+                                id = rideResponse.id,
+                                roomName = "Sync Ride",
+                                startTime = startMs,
+                                endTime = endMs,
+                                totalDistanceMeters = rideResponse.distanceKm * 1000f,
+                                isSynced = true
+                            )
+                            rideDao.insertSession(entity)
+                        } catch (e: Exception) {
+                            // Date parse error for single ride, skip
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore sync errors for now
             }
         }
     }

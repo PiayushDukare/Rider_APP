@@ -345,8 +345,7 @@ class LiveKitManager @Inject constructor(
             try {
                 val bytes = gson.toJson(location).toByteArray(Charsets.UTF_8)
                 room?.localParticipant?.publishData(
-                    bytes,
-                    options = io.livekit.android.room.track.DataPublishOptions(reliability = io.livekit.android.room.track.DataPublishReliability.LOSSY)
+                    bytes
                 )
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to publish location: ${e.message}")

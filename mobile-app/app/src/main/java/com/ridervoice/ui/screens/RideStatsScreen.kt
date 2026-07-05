@@ -216,9 +216,7 @@ fun RideStatsScreen(
                 }
             }
         }
-        
-        // Bottom Navigation Bar Overlay
-        BottomNavBar(modifier = Modifier.align(Alignment.BottomCenter))
+        // Bottom Navigation Bar Removed
     }
 }
 

@@ -57,11 +57,18 @@ class InvitesInboxViewModel @Inject constructor(
                 if (response.isSuccessful) {
                     _invites.value = _invites.value.filter { it.id != invite.id }
                     if (accept) {
-                        val tokenReq = com.ridervoice.models.JoinTokenRequest(invite.roomId)
+                        // BUG FIX: Use room NAME, not room ID. The join-token API
+                        // does prisma.room.findUnique({ where: { name: roomName } })
+                        val tokenReq = com.ridervoice.models.JoinTokenRequest(invite.room.name)
                         val tokenRes = apiService.getJoinToken(tokenReq)
                         if (tokenRes.isSuccessful && tokenRes.body() != null) {
-                            com.ridervoice.models.RideSession.livekitToken = tokenRes.body()!!.token
-                            onAcceptSuccess(invite.roomId)
+                            val body = tokenRes.body()!!
+                            // BUG FIX: Store BOTH token AND livekitUrl so RoomViewModel
+                            // can connect to the correct LiveKit server
+                            com.ridervoice.models.RideSession.livekitToken = body.token
+                            com.ridervoice.models.RideSession.livekitUrl = body.livekitUrl
+                            // BUG FIX: Navigate with room name, not room ID
+                            onAcceptSuccess(invite.room.name)
                         } else {
                             _error.value = "Failed to get join token"
                         }
